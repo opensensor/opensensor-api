@@ -1,0 +1,63 @@
+name: DigitalOcean Docker Image Publish
+description: Publish a Docker image to Digital Ocean's Container Registry
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
+
+inputs:
+  image_path:
+    description: Image path in the format registry-name/image-name
+    required: true
+  sha_size:
+    description: Number of characters from the commit SHA
+    required: false
+    default: '8'
+  dockerfile:
+    description: The path + name of the Dockerfile you want to build (-f flag)
+    required: false
+    default: 'Dockerfile'
+  docker_build_context:
+    description: The docker build context (usually '.')
+    required: false
+    default: '.'
+
+outputs:
+  image_url:
+    description: 'Url of the uploaded image with the SHA tag'
+    value: ${{ steps.image_tags.outputs.sha }}
+  image_latest_url:
+    description: 'Url of the uploaded image with the latest tag'
+    value: ${{ steps.image_tags.outputs.latest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate Image Url
+      id: image_url
+      shell: bash
+      run: echo "::set-output name=value::registry.digitalocean.com/${{ inputs.image_path }}"
+
+    - name: Generate Tagged Urls
+      id: image_tags
+      shell: bash
+      run: |
+        SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-${{ inputs.sha_size }})
+        echo "::set-output name=sha::${{ steps.image_url.outputs.value }}:$SHORT_SHA"
+        echo "::set-output name=latest::${{ steps.image_url.outputs.value }}:latest"
+    - name: Build image
+      shell: bash
+      run: >
+        docker build ${{ inputs.docker_build_context }}
+        -f ${{ inputs.dockerfile }}
+        -t ${{ steps.image_tags.outputs.sha }}
+        -t ${{ steps.image_tags.outputs.latest }}
+
+    - name: Login to registry
+      shell: bash
+      if: github.ref == 'refs/heads/main'
+      run: doctl registry login --expiry-seconds 600
+
+    - name: Upload image to registry
+      shell: bash
+      if: github.ref == 'refs/heads/main'
+      run: docker push -a ${{ steps.image_url.outputs.value }}
