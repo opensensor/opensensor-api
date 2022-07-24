@@ -18,6 +18,9 @@ spec:
       containers:
         - name: opensensor-api
           image: registry.digitalocean.com/whitewhale/opensensor
+          envFrom:
+            - secretRef:
+                name: opensensor-secrets
           ports:
           - containerPort: 8010
           resources:
