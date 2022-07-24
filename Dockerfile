@@ -20,7 +20,6 @@ RUN set -ex \
     && pip install pipenv \
     && pipenv sync --dev \
     # && pipenv run pytest \
-    && DATABASE_URL='' /usr/src/.venv/bin/python manage.py collectstatic --noinput \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
