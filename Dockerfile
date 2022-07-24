@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM python:3.10-slim as builder
 
+ENV PIPENV_VENV_IN_PROJECT=1
+
 # Copy your application source to the container
 # (make sure you create a .dockerignore file if any large files or directories should be excluded)
 WORKDIR /usr/src/
@@ -34,4 +36,4 @@ RUN useradd --create-home --shell /bin/bash opensensor-api
 USER opensensor-api
 
 # Start opensensor API
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--reload"]
+CMD ["/usr/src/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--reload"]
