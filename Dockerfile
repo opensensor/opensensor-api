@@ -10,7 +10,7 @@ ADD . /usr/src/
 
 # Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
 # Correct the path to your production requirements file, if needed.
-WORKDIR /usr/src/opensensor-api/
+WORKDIR /usr/src/
 RUN set -ex \
     && BUILD_DEPS=" \
     build-essential \
@@ -30,7 +30,7 @@ FROM python:3.10-slim as runtime
 
 
 COPY --from=builder /usr/src/ /usr/src/
-WORKDIR /usr/src/opensensor-api/
+WORKDIR /usr/src/
 
 RUN useradd --create-home --shell /bin/bash opensensor-api
 USER opensensor-api
