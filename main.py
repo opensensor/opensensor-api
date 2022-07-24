@@ -1,18 +1,18 @@
+import os
 from datetime import datetime
 from decimal import Decimal
-import os
 
-from fastapi import FastAPI, Path
-from pydantic import BaseModel, Field
 from bson.objectid import ObjectId
-
+from fastapi import FastAPI, Path
+from pydantic import BaseModel
 from pymongo import MongoClient
 
 app = FastAPI()
 
 
 class PyObjectId(ObjectId):
-    """ Custom Type for reading MongoDB IDs """
+    """Custom Type for reading MongoDB IDs"""
+
     @classmethod
     def __get_validators__(cls):
         yield cls.validate
@@ -29,7 +29,7 @@ class PyObjectId(ObjectId):
 
 
 def _get_mongo_connection():
-    connection_str = os.environ.get('OPENSENSOR_DB') or ''
+    connection_str = os.environ.get("OPENSENSOR_DB") or ""
     client = MongoClient(connection_str)
     return client
 
@@ -49,12 +49,12 @@ class Temperature(BaseModel):
 @app.post("/temps/")
 async def record_temperature(temp: Temperature):
     client = _get_mongo_connection()
-    db = client['default']
+    db = client["default"]
     temps = db.defaultTemp
     temp_data = {
         "timestamp": datetime.utcnow(),
         "metadata": {"device_id": temp.device_id, "name": temp.name, "unit": temp.unit},
-        "temperature": str(temp.temperature)
+        "temperature": str(temp.temperature),
     }
     temps.insert_one(temp_data)
     return temp
@@ -62,10 +62,10 @@ async def record_temperature(temp: Temperature):
 
 @app.get("/temps/{device_id}")
 async def historical_temperatures(
-    device_id: str = Path(title="The ID of the device about which to retrieve historical data.")
+    device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
 ):
     client = _get_mongo_connection()
-    db = client['default']
+    db = client["default"]
     temps = db.defaultTemp
     results = temps.find({"metadata.device_id": device_id}, {"_id": 0})
     data = []
