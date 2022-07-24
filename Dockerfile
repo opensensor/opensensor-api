@@ -31,7 +31,7 @@ COPY --from=builder /usr/src/ /usr/src/
 WORKDIR /usr/src/opensensor-api/
 
 RUN useradd --create-home --shell /bin/bash opensensor-api
-USER opensensor
+USER opensensor-api
 
 # Start opensensor API
 CMD ["/usr/src/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--reload"]

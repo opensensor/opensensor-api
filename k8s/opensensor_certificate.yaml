@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: opensensor
+  namespace: whitewhale
+spec:
+  secretName: opensensor-tls
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  commonName: www.opensensor.io
+  dnsNames:
+    - opensensor.io
