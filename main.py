@@ -38,18 +38,18 @@ def _get_sensor_ts_metadata(metadata: SensorMetaData):
     return metadata
 
 
-def _record_humidity_data(humidity: Humidity, metadata: SensorMetaData):
+def _record_humidity_data(metadata: SensorMetaData, rh: Humidity):
     db = get_open_sensor_db()
     rhs = db.Humidity
     humidity_data = {
         "timestamp": datetime.utcnow(),
         "metadata": _get_sensor_ts_metadata(metadata),
-        "rh": str(humidity.rh),
+        "rh": str(rh.rh),
     }
     rhs.insert_one(humidity_data)
 
 
-def _record_temperature_data(temp: Temperature, metadata: SensorMetaData):
+def _record_temperature_data(metadata: SensorMetaData, temp: Temperature):
     db = get_open_sensor_db()
     temps = db.Temperature
     md = _get_sensor_ts_metadata(metadata)
@@ -63,15 +63,15 @@ def _record_temperature_data(temp: Temperature, metadata: SensorMetaData):
 
 
 @app.post("/rh/")
-async def record_humidity(humidity: Humidity, metadata: SensorMetaData):
-    _record_humidity_data(humidity)
-    return humidity
+async def record_humidity(metadata: SensorMetaData, rh: Humidity):
+    _record_humidity_data(metadata, rh)
+    return {"metadata": metadata, "rh": rh}
 
 
 @app.post("/temp/")
-async def record_temperature(temp: Temperature, metadata: SensorMetaData):
-    _record_temperature_data(temp)
-    return temp
+async def record_temperature(metadata: SensorMetaData, temp: Temperature):
+    _record_temperature_data(metadata, temp)
+    return {"metadata": metadata, "temp": temp}
 
 
 @app.get("/temp/{device_id}")
@@ -88,8 +88,9 @@ async def historical_temperatures(
 
 
 @app.post("/environment/")
-async def record_environment(environment: Environment, metadata: SensorMetaData):
+async def record_environment(metadata: SensorMetaData, environment: Environment):
     if environment.temp:
-        _record_temperature_data(environment.temp, metadata)
+        _record_temperature_data(metadata, environment.temp)
     if environment.rh:
-        _record_humidity_data(environment.rh, metadata)
+        _record_humidity_data(metadata, environment.rh)
+    return {"metadata": metadata, "environment": environment}
