@@ -19,64 +19,57 @@ class SensorMetaData(BaseModel):
     name: str | None = None
 
 
-class Temperature(SensorMetaData):
+class Temperature(BaseModel):
     temp: Decimal
     unit: str
 
 
-class Humidity(SensorMetaData):
+class Humidity(BaseModel):
     rh: Decimal
 
 
-class Environment(SensorMetaData):
+class Environment(BaseModel):
     temp: Temperature | None = None
     rh: Humidity | None = None
 
-    def __init__(self, **data):
-        print(data)
-        for field in ["temp", "rh"]:
-            if data.get(field) and not data[field].get("device_id"):
-                data[field]["device_id"] = data.get("device_id")
-        super().__init__(**data)
 
-
-def _get_sensor_ts_metadata(data):
-    metadata = {"device_id": data.device_id, "name": data.name}
-    if hasattr(data, "unit"):
-        metadata["unit"] = data.unit
+def _get_sensor_ts_metadata(metadata: SensorMetaData):
+    metadata = {"device_id": metadata.device_id, "name": metadata.name}
     return metadata
 
 
-def _record_humidity_data(humidity: Humidity):
+def _record_humidity_data(humidity: Humidity, metadata: SensorMetaData):
     db = get_open_sensor_db()
     rhs = db.Humidity
     humidity_data = {
         "timestamp": datetime.utcnow(),
-        "metadata": _get_sensor_ts_metadata(humidity),
+        "metadata": _get_sensor_ts_metadata(metadata),
         "rh": str(humidity.rh),
     }
     rhs.insert_one(humidity_data)
 
 
-def _record_temperature_data(temp: Temperature):
+def _record_temperature_data(temp: Temperature, metadata: SensorMetaData):
     db = get_open_sensor_db()
     temps = db.Temperature
+    md = _get_sensor_ts_metadata(metadata)
+    md["unit"] = temp.unit
     temp_data = {
         "timestamp": datetime.utcnow(),
-        "metadata": _get_sensor_ts_metadata(temp),
+        "metadata": md,
         "temp": str(temp.temp),
     }
     temps.insert_one(temp_data)
 
 
 @app.post("/rh/")
-async def record_humidity(humidity: Humidity):
+async def record_humidity(humidity: Humidity, metadata: SensorMetaData):
     _record_humidity_data(humidity)
     return humidity
 
 
 @app.post("/temp/")
-async def record_temperature(temp: Temperature):
+async def record_temperature(temp: Temperature, metadata: SensorMetaData):
     _record_temperature_data(temp)
     return temp
 
@@ -95,8 +88,8 @@ async def historical_temperatures(
 
 
 @app.post("/environment/")
-async def record_environment(environment: Environment):
+async def record_environment(environment: Environment, metadata: SensorMetaData):
     if environment.temp:
-        _record_temperature_data(environment.temp)
+        _record_temperature_data(environment.temp, metadata)
     if environment.rh:
-        _record_humidity_data(environment.rh)
+        _record_humidity_data(environment.rh, metadata)
