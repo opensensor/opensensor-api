@@ -20,7 +20,7 @@ class SensorMetaData(BaseModel):
 
 
 class Temperature(SensorMetaData):
-    temperature: Decimal
+    temp: Decimal
     unit: str
 
 
@@ -64,7 +64,7 @@ def _record_temperature_data(temp: Temperature):
     temp_data = {
         "timestamp": datetime.utcnow(),
         "metadata": _get_sensor_ts_metadata(temp),
-        "temperature": str(temp.temperature),
+        "temp": str(temp.temp),
     }
     temps.insert_one(temp_data)
 
