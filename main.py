@@ -45,7 +45,7 @@ def _record_data_point_to_ts_collection(
     data = {
         "timestamp": datetime.utcnow(),
         "metadata": metadata,
-        ts_column_name: getattr(data_point, ts_column_name),
+        ts_column_name: str(getattr(data_point, ts_column_name)),
     }
     collection.insert_one(data)
 
