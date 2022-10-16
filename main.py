@@ -16,58 +16,51 @@ async def root():
     return {"message": "Hello World"}
 
 
-class SensorMetaData(BaseModel):
+class DeviceMetadata(BaseModel):
     device_id: str
     name: str | None = None
-    unit: str | None = None
 
 
 class Temperature(BaseModel):
-    metadata: SensorMetaData
     temp: Decimal
+    unit: str | None = None
 
 
 class Humidity(BaseModel):
-    metadata: SensorMetaData | None = None
     rh: Decimal
 
 
 class Environment(BaseModel):
+    device_metadata: DeviceMetadata
     temp: Temperature | None = None
     rh: Humidity | None = None
 
 
-def _record_humidity_data(rh: Humidity):
-    db = get_open_sensor_db()
-    rhs = db.Humidity
-    humidity_data = {
+def _record_data_point_to_ts_collection(collection, ts_column_name: str, device_metadata: DeviceMetadata, data_point):
+    metadata = device_metadata.dict()
+    if hasattr(data_point, "unit"):
+        metadata["unit"] = data_point.unit
+    data = {
         "timestamp": datetime.utcnow(),
-        "metadata": rh.metadata.dict(),
-        "rh": str(rh.rh),
+        "metadata": metadata,
+        ts_column_name: getattr(data_point, ts_column_name),
     }
-    rhs.insert_one(humidity_data)
-
-
-def _record_temperature_data(temp: Temperature):
-    db = get_open_sensor_db()
-    temps = db.Temperature
-    temp_data = {
-        "timestamp": datetime.utcnow(),
-        "metadata": temp.metadata.dict(),
-        "temp": str(temp.temp),
-    }
-    temps.insert_one(temp_data)
+    collection.insert_one(data)
 
 
 @app.post("/rh/", response_model=Humidity)
-async def record_humidity(rh: Humidity):
-    _record_humidity_data(rh)
+async def record_humidity(device_metadata: DeviceMetadata, rh: Humidity):
+    db = get_open_sensor_db()
+    rhs = db.Humidity
+    _record_data_point_to_ts_collection(rhs, "rh", device_metadata, rh)
     return rh.dict()
 
 
 @app.post("/temp/", response_model=Temperature)
-async def record_temperature(temp: Temperature):
-    _record_temperature_data(temp)
+async def record_temperature(device_metadata: DeviceMetadata, temp: Temperature):
+    db = get_open_sensor_db()
+    temps = db.Temperature
+    _record_data_point_to_ts_collection(temps, "temp", device_metadata, temp)
     return temp.dict()
 
 
@@ -77,17 +70,21 @@ async def historical_temperatures(
 ):
     db = get_open_sensor_db()
     matching_data = paginate(
-        db.Temperature, {"metadata.device_id": device_id}, projection={"_id": False}
+        db.Temperature, {"metadata.device_id": device_id},
+        projection={"_id": False, "unit": "$metadata.unit", "temp": "$temp"}
     )
     return matching_data
 
 
 @app.post("/environment/", response_model=Environment)
 async def record_environment(environment: Environment):
+    db = get_open_sensor_db()
     if environment.temp:
-        _record_temperature_data(environment.temp)
+        temps = db.Temperature
+        _record_data_point_to_ts_collection(temps, "temp", environment.device_metadata, environment.temp)
     if environment.rh:
-        _record_humidity_data(environment.rh)
+        rhs = db.Humidity
+        _record_data_point_to_ts_collection(rhs, "rh", environment.device_metadata, environment.rh)
     return environment.dict()
 
 
