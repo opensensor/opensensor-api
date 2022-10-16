@@ -13,7 +13,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Welcome to OpenSensor.io!  Navigate to /docs for current Alpha API spec."}
 
 
 class DeviceMetadata(BaseModel):
