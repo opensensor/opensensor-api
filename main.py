@@ -29,8 +29,8 @@ class Temperature(BaseModel):
 
 
 class Humidity(BaseModel):
-    rh: Decimal
     metadata: SensorMetaData | None = None
+    rh: Decimal
 
 
 class Environment(BaseModel):
