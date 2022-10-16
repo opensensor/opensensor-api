@@ -4,7 +4,6 @@ from decimal import Decimal
 from fastapi import FastAPI, Path
 from fastapi_pagination import Page, add_pagination
 from fastapi_pagination.ext.pymongo import paginate
-
 from pydantic import BaseModel
 
 from opensensor.utils import get_open_sensor_db
@@ -97,9 +96,7 @@ async def historical_temperatures(
 ):
     db = get_open_sensor_db()
     matching_data = paginate(
-        db.Temperature,
-        {"metadata.device_id": device_id},
-        projection={"_id": False}
+        db.Temperature, {"metadata.device_id": device_id}, projection={"_id": False}
     )
     return matching_data
 
