@@ -10,6 +10,8 @@ pydantic = "*"
 pymongo = {extras = ["srv"], version = "*"}
 ipython = "*"
 simplejson = "*"
+install = "*"
+fastapi-pagination = {extras = ["pymongo"], version = "*"}
 
 [dev-packages]
 
