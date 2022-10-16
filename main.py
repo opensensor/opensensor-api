@@ -88,7 +88,7 @@ async def record_environment(environment: Environment):
         _record_temperature_data(environment.temp)
     if environment.rh:
         _record_humidity_data(environment.rh)
-    return {"environment": environment.dict()}
+    return environment.dict()
 
 
 add_pagination(app)
