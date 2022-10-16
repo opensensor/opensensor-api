@@ -60,15 +60,15 @@ def _record_temperature_data(temp: Temperature):
 
 
 @app.post("/rh/", response_model=Humidity)
-async def record_humidity(metadata: SensorMetaData, rh: Humidity):
+async def record_humidity(rh: Humidity):
     _record_humidity_data(rh)
-    return {"metadata": metadata, "rh": rh}
+    return rh.dict()
 
 
 @app.post("/temp/", response_model=Temperature)
 async def record_temperature(temp: Temperature):
     _record_temperature_data(temp)
-    return {"temp": temp}
+    return temp.dict()
 
 
 @app.get("/temp/{device_id}", response_model=Page[Temperature])
