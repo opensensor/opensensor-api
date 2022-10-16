@@ -2,6 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import FastAPI, Path
+from fastapi_pagination import Page, add_pagination
+from fastapi_pagination.ext.pymongo import paginate
+
 from pydantic import BaseModel
 
 from opensensor.utils import get_open_sensor_db
@@ -17,17 +20,12 @@ async def root():
 class SensorMetaData(BaseModel):
     device_id: str
     name: str | None = None
+    unit: str | None = None
 
 
 class Temperature(BaseModel):
     temp: Decimal
-    unit: str
-
-    @classmethod
-    def parse_obj_from_ts(cls, ts_data):
-        metadata = ts_data.pop("metadata", {})
-        ts_data["unit"] = metadata.get("unit")
-        return cls.parse_obj(ts_data)
+    metadata: SensorMetaData | None = None
 
 
 class TemperatureMeta(BaseModel):
@@ -59,17 +57,12 @@ class EnvironmentMeta(BaseModel):
     environment: Environment
 
 
-def _get_sensor_ts_metadata(metadata: SensorMetaData):
-    metadata = {"device_id": metadata.device_id, "name": metadata.name}
-    return metadata
-
-
 def _record_humidity_data(metadata: SensorMetaData, rh: Humidity):
     db = get_open_sensor_db()
     rhs = db.Humidity
     humidity_data = {
         "timestamp": datetime.utcnow(),
-        "metadata": _get_sensor_ts_metadata(metadata),
+        "metadata": metadata.dict(),
         "rh": str(rh.rh),
     }
     rhs.insert_one(humidity_data)
@@ -78,11 +71,9 @@ def _record_humidity_data(metadata: SensorMetaData, rh: Humidity):
 def _record_temperature_data(metadata: SensorMetaData, temp: Temperature):
     db = get_open_sensor_db()
     temps = db.Temperature
-    md = _get_sensor_ts_metadata(metadata)
-    md["unit"] = temp.unit
     temp_data = {
         "timestamp": datetime.utcnow(),
-        "metadata": md,
+        "metadata": metadata.dict(),
         "temp": str(temp.temp),
     }
     temps.insert_one(temp_data)
@@ -100,20 +91,17 @@ async def record_temperature(metadata: SensorMetaData, temp: Temperature):
     return {"metadata": metadata, "temp": temp}
 
 
-@app.get("/temp/{device_id}", response_model=TemperaturesMeta)
+@app.get("/temp/{device_id}", response_model=Page[Temperature])
 async def historical_temperatures(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
 ):
     db = get_open_sensor_db()
-    temps = db.Temperature
-    matching_data = temps.find(
-        {"metadata.device_id": device_id}, {"_id": 0, "metadata.device_id": 0, "metadata.name": 0}
+    matching_data = paginate(
+        db.Temperature,
+        {"metadata.device_id": device_id},
+        projection={"_id": False}
     )
-    results = []
-    data = {"metadata": {"device_id": device_id}, "results": results}
-    for temp in matching_data:
-        results.append(Temperature.parse_obj_from_ts(temp))
-    return data
+    return matching_data
 
 
 @app.post("/environment/", response_model=EnvironmentMeta)
@@ -123,3 +111,6 @@ async def record_environment(metadata: SensorMetaData, environment: Environment)
     if environment.rh:
         _record_humidity_data(metadata, environment.rh)
     return {"metadata": metadata, "environment": environment}
+
+
+add_pagination(app)
