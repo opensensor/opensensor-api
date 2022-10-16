@@ -36,7 +36,9 @@ class Environment(BaseModel):
     rh: Humidity | None = None
 
 
-def _record_data_point_to_ts_collection(collection, ts_column_name: str, device_metadata: DeviceMetadata, data_point):
+def _record_data_point_to_ts_collection(
+    collection, ts_column_name: str, device_metadata: DeviceMetadata, data_point
+):
     metadata = device_metadata.dict()
     if hasattr(data_point, "unit"):
         metadata["unit"] = data_point.unit
@@ -70,8 +72,9 @@ async def historical_temperatures(
 ):
     db = get_open_sensor_db()
     matching_data = paginate(
-        db.Temperature, {"metadata.device_id": device_id},
-        projection={"_id": False, "unit": "$metadata.unit", "temp": "$temp"}
+        db.Temperature,
+        {"metadata.device_id": device_id},
+        projection={"_id": False, "unit": "$metadata.unit", "temp": "$temp"},
     )
     return matching_data
 
@@ -81,7 +84,9 @@ async def record_environment(environment: Environment):
     db = get_open_sensor_db()
     if environment.temp:
         temps = db.Temperature
-        _record_data_point_to_ts_collection(temps, "temp", environment.device_metadata, environment.temp)
+        _record_data_point_to_ts_collection(
+            temps, "temp", environment.device_metadata, environment.temp
+        )
     if environment.rh:
         rhs = db.Humidity
         _record_data_point_to_ts_collection(rhs, "rh", environment.device_metadata, environment.rh)
