@@ -30,10 +30,16 @@ class Humidity(BaseModel):
     rh: Decimal
 
 
+class Pressure(BaseModel):
+    pressure: Decimal
+    unit: str | None = None
+
+
 class Environment(BaseModel):
     device_metadata: DeviceMetadata
     temp: Temperature | None = None
     rh: Humidity | None = None
+    pressure: Pressure | None = None
 
 
 def _record_data_point_to_ts_collection(
@@ -53,17 +59,22 @@ def _record_data_point_to_ts_collection(
 @app.post("/rh/", response_model=Humidity)
 async def record_humidity(device_metadata: DeviceMetadata, rh: Humidity):
     db = get_open_sensor_db()
-    rhs = db.Humidity
-    _record_data_point_to_ts_collection(rhs, "rh", device_metadata, rh)
+    _record_data_point_to_ts_collection(db.Humidity, "rh", device_metadata, rh)
     return rh.dict()
 
 
 @app.post("/temp/", response_model=Temperature)
 async def record_temperature(device_metadata: DeviceMetadata, temp: Temperature):
     db = get_open_sensor_db()
-    temps = db.Temperature
-    _record_data_point_to_ts_collection(temps, "temp", device_metadata, temp)
+    _record_data_point_to_ts_collection(db.Temperature, "temp", device_metadata, temp)
     return temp.dict()
+
+
+@app.post("/pressure/", response_model=Pressure)
+async def record_pressure(device_metadata: DeviceMetadata, pressure: Pressure):
+    db = get_open_sensor_db()
+    _record_data_point_to_ts_collection(db.Pressure, "pressure", device_metadata, pressure)
+    return pressure.dict()
 
 
 @app.get("/temp/{device_id}", response_model=Page[Temperature])
@@ -83,13 +94,11 @@ async def historical_temperatures(
 async def record_environment(environment: Environment):
     db = get_open_sensor_db()
     if environment.temp:
-        temps = db.Temperature
-        _record_data_point_to_ts_collection(
-            temps, "temp", environment.device_metadata, environment.temp
-        )
+        _record_data_point_to_ts_collection(db.Temperature, "temp", environment.device_metadata, environment.temp)
     if environment.rh:
-        rhs = db.Humidity
-        _record_data_point_to_ts_collection(rhs, "rh", environment.device_metadata, environment.rh)
+        _record_data_point_to_ts_collection(db.Humidity, "rh", environment.device_metadata, environment.rh)
+    if environment.pressure:
+        _record_data_point_to_ts_collection(db.Pressure, "pressure", environment.device_metadata, environment.pressure)
     return environment.dict()
 
 

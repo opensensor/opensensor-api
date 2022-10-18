@@ -21,3 +21,11 @@ except pymongo.errors.OperationFailure:  # If the collection doesn't exist
         "Humidity",
         timeseries={"timeField": "timestamp", "metaField": "metadata", "granularity": "minutes"},
     )
+try:
+    db.Pressure  # Try to validate a collection
+except pymongo.errors.OperationFailure:  # If the collection doesn't exist
+    print("Pressure collection doesn't exist yet; Creating ...")
+    db.create_collection(
+        "Pressure",
+        timeseries={"timeField": "timestamp", "metaField": "metadata", "granularity": "minutes"},
+    )
