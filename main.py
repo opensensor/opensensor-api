@@ -94,11 +94,17 @@ async def historical_temperatures(
 async def record_environment(environment: Environment):
     db = get_open_sensor_db()
     if environment.temp:
-        _record_data_point_to_ts_collection(db.Temperature, "temp", environment.device_metadata, environment.temp)
+        _record_data_point_to_ts_collection(
+            db.Temperature, "temp", environment.device_metadata, environment.temp
+        )
     if environment.rh:
-        _record_data_point_to_ts_collection(db.Humidity, "rh", environment.device_metadata, environment.rh)
+        _record_data_point_to_ts_collection(
+            db.Humidity, "rh", environment.device_metadata, environment.rh
+        )
     if environment.pressure:
-        _record_data_point_to_ts_collection(db.Pressure, "pressure", environment.device_metadata, environment.pressure)
+        _record_data_point_to_ts_collection(
+            db.Pressure, "pressure", environment.device_metadata, environment.pressure
+        )
     return environment.dict()
 
 
