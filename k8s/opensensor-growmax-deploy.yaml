@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: opensensor-growmax
-          image: registry.digitalocean.com/whitewhale/opensensor
+          image: registry.digitalocean.com/whitewhale/opensensor-storefront
           envFrom:
             - secretRef:
                 name: opensensor-secrets
