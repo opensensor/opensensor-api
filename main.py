@@ -35,6 +35,14 @@ class Pressure(BaseModel):
     unit: str | None = None
 
 
+class Lux(BaseModel):
+    percent: Decimal
+
+
+class CO2(BaseModel):
+    ppm: Decimal
+
+
 class Environment(BaseModel):
     device_metadata: DeviceMetadata
     temp: Temperature | None = None
@@ -75,6 +83,14 @@ async def record_pressure(device_metadata: DeviceMetadata, pressure: Pressure):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Pressure, "pressure", device_metadata, pressure)
     return pressure.dict()
+
+
+@app.post("/lux/", response_model=Pressure)
+async def record_pressure(device_metadata: DeviceMetadata, lux: Lux):
+    db = get_open_sensor_db()
+    _record_data_point_to_ts_collection(db.Lux, "percent", device_metadata, lux)
+    return lux.dict()
+
 
 
 @app.get("/temp/{device_id}", response_model=Page[Temperature])
