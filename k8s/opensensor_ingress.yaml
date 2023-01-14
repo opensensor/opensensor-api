@@ -25,7 +25,7 @@ spec:
           path: "/"
           backend:
             service:
-              name: opensensor-api
+              name: opensensor-growmax
               port:
                 number: 80
   - host: www.opensensor.io
@@ -35,7 +35,7 @@ spec:
           path: "/"
           backend:
             service:
-              name: opensensor-api
+              name: opensensor-growmax
               port:
                 number: 80
   - host: api.opensensor.io
