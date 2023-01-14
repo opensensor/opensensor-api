@@ -88,14 +88,14 @@ async def record_pressure(device_metadata: DeviceMetadata, pressure: Pressure):
 
 
 @app.post("/lux/", response_model=Lux)
-async def record_pressure(device_metadata: DeviceMetadata, lux: Lux):
+async def record_lux(device_metadata: DeviceMetadata, lux: Lux):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Lux, "percent", device_metadata, lux)
     return lux.dict()
 
 
 @app.post("/CO2/", response_model=CO2)
-async def record_pressure(device_metadata: DeviceMetadata, co2: CO2):
+async def record_CO2(device_metadata: DeviceMetadata, co2: CO2):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.CO2, "ppm", device_metadata, co2)
     return co2.dict()
