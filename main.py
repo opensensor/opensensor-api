@@ -48,6 +48,8 @@ class Environment(BaseModel):
     temp: Temperature | None = None
     rh: Humidity | None = None
     pressure: Pressure | None = None
+    lux: Lux | None = None
+    co2: CO2 | None = None
 
 
 def _record_data_point_to_ts_collection(
@@ -85,12 +87,18 @@ async def record_pressure(device_metadata: DeviceMetadata, pressure: Pressure):
     return pressure.dict()
 
 
-@app.post("/lux/", response_model=Pressure)
+@app.post("/lux/", response_model=Lux)
 async def record_pressure(device_metadata: DeviceMetadata, lux: Lux):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Lux, "percent", device_metadata, lux)
     return lux.dict()
 
+
+@app.post("/CO2/", response_model=CO2)
+async def record_pressure(device_metadata: DeviceMetadata, co2: CO2):
+    db = get_open_sensor_db()
+    _record_data_point_to_ts_collection(db.CO2, "ppm", device_metadata, co2)
+    return co2.dict()
 
 
 @app.get("/temp/{device_id}", response_model=Page[Temperature])
@@ -121,6 +129,15 @@ async def record_environment(environment: Environment):
         _record_data_point_to_ts_collection(
             db.Pressure, "pressure", environment.device_metadata, environment.pressure
         )
+    if environment.lux:
+        _record_data_point_to_ts_collection(
+            db.Lux, "percent", environment.device_metadata, environment.lux
+        )
+    if environment.co2:
+        _record_data_point_to_ts_collection(
+            db.CO2, "ppm", environment.device_metadata, environment.co2
+        )
+
     return environment.dict()
 
 
