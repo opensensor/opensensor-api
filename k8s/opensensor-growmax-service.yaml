@@ -19,6 +19,6 @@ spec:
     - name: http
       protocol: TCP
       port: 80
-      targetPort: 8010
+      targetPort: 3012
   selector:
     app: opensensor-growmax
