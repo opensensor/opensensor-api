@@ -24,6 +24,7 @@ class DeviceMetadata(BaseModel):
 class Temperature(BaseModel):
     temp: Decimal
     unit: str | None = None
+    timestamp: datetime | None = None
 
 
 class Humidity(BaseModel):
@@ -109,7 +110,12 @@ async def historical_temperatures(
     matching_data = paginate(
         db.Temperature,
         {"metadata.device_id": device_id},
-        projection={"_id": False, "unit": "$metadata.unit", "temp": "$temp", "timestamp": "$timestamp"},
+        projection={
+            "_id": False,
+            "unit": "$metadata.unit",
+            "temp": "$temp",
+            "timestamp": "$timestamp",
+        },
     )
     return matching_data
 
