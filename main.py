@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from fastapi import FastAPI, Path
-from fastapi_pagination import Page, add_pagination
-from fastapi_pagination.ext.pymongo import paginate
+from fastapi_pagination import Page, Params, add_pagination
+from fastapi_pagination.ext.pymongo import paginate as pymongo_paginate
 from pydantic import BaseModel
 
 from opensensor.utils import get_open_sensor_db
@@ -107,7 +107,7 @@ async def historical_temperatures(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
 ):
     db = get_open_sensor_db()
-    matching_data = paginate(
+    matching_data = pymongo_paginate(
         db.Temperature,
         {"metadata.device_id": device_id},
         projection={
@@ -118,6 +118,64 @@ async def historical_temperatures(
         },
     )
     return matching_data
+
+
+def get_uniform_sample_pipeline():
+    # Define timestamp range and sampling interval
+    start_date = datetime(2023, 1, 1)
+    end_date = datetime(2023, 3, 22)
+    sampling_interval = timedelta(hours=1)  # Adjust the sampling interval as needed
+
+    # Query a uniform sample of documents within the timestamp range
+    pipeline = [
+        {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
+        {
+            "$addFields": {
+                "group": {
+                    "$floor": {
+                        "$divide": [
+                            {"$subtract": ["$timestamp", start_date]},
+                            sampling_interval.total_seconds() * 1000,
+                        ]
+                    }
+                }
+            }
+        },
+        {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
+        {"$replaceRoot": {"newRoot": "$doc"}},
+        {
+            "$project": {
+                "_id": False,
+                "unit": "$metadata.unit",
+                "temp": "$temp",
+                "timestamp": "$timestamp",  # Don't forget to include the timestamp field
+            }
+        },
+        {"$sort": {"timestamp": 1}},  # Sort by timestamp in ascending order
+        # {"$count": "total"}
+    ]
+    return pipeline
+
+
+@app.get("/sampled-temp/{device_id}", response_model=Page[Temperature])
+async def historical_temperatures_sampled(
+    device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
+    params: Params = Params(),
+):
+    pipeline = get_uniform_sample_pipeline()
+
+    offset = (params.page - 1) * params.size
+    size = params.size
+
+    # Add $skip and $limit stages for pagination
+    pipeline.extend([{"$skip": offset}, {"$limit": size}])
+    db = get_open_sensor_db()
+    data = list(db.Temperature.aggregate(pipeline))
+    pipeline.append({"$count": "total"})
+    data_count = list(db.Temperature.aggregate(pipeline))
+    total_count = data_count[0]["total"] if data else 0
+    print(data)
+    return Page(items=data, total=total_count, page=params.page, size=size, params=params)
 
 
 @app.post("/environment/", response_model=Environment)
