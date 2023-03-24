@@ -166,7 +166,7 @@ async def historical_temperatures_sampled(
         start_date = datetime.utcnow() - timedelta(days=100)
     if end_date is None:
         end_date = datetime.utcnow()
-    pipeline = get_uniform_sample_pipeline(device_id)
+    pipeline = get_uniform_sample_pipeline(device_id, start_date, end_date)
 
     offset = (page - 1) * size
 
