@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from fastapi import FastAPI, Path
+from fastapi import FastAPI, Path, Query
 from fastapi_pagination import Page, Params, add_pagination
 from fastapi_pagination.ext.pymongo import paginate as pymongo_paginate
 from pydantic import BaseModel
