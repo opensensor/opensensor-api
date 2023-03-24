@@ -16,6 +16,10 @@ async def root():
     return {"message": "Welcome to OpenSensor.io!  Navigate to /docs for current Alpha API spec."}
 
 
+class CustomPage(Page):
+    size: int = Field(..., ge=1, le=1000, description="Page size")
+
+
 class DeviceMetadata(BaseModel):
     device_id: str
     name: str | None = None
@@ -102,7 +106,7 @@ async def record_CO2(device_metadata: DeviceMetadata, co2: CO2):
     return co2.dict()
 
 
-@app.get("/temp/{device_id}", response_model=Page[Temperature])
+@app.get("/temp/{device_id}", response_model=CustomPage[Temperature])
 async def historical_temperatures(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
 ):
@@ -154,7 +158,7 @@ def get_uniform_sample_pipeline(device_id: str, start_date: datetime, end_date: 
     return pipeline
 
 
-@app.get("/sampled-temp/{device_id}", response_model=Page[Temperature])
+@app.get("/sampled-temp/{device_id}", response_model=CustomPage[Temperature])
 async def historical_temperatures_sampled(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
     start_date: datetime | None = None,
@@ -179,7 +183,7 @@ async def historical_temperatures_sampled(
     data_count = list(db.Temperature.aggregate(pipeline))
     total_count = data_count[0]["total"] if data else 0
     print(data)
-    return Page(items=data, total=total_count, page=page, size=size)
+    return CustomPage(items=data, total=total_count, page=page, size=size)
 
 
 @app.post("/environment/", response_model=Environment)
