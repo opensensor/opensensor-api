@@ -160,7 +160,7 @@ async def historical_temperatures_sampled(
     start_date: datetime | None = None,
     end_date: datetime | None = None,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-    size: int = Query(50, ge=1, le=100, description="Page size"),
+    size: int = Query(50, ge=1, le=1000, description="Page size"),
 ):
     if start_date is None:
         start_date = datetime.utcnow() - timedelta(days=100)

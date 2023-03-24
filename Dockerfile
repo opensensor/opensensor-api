@@ -36,4 +36,4 @@ RUN useradd --create-home --shell /bin/bash opensensor-api
 USER opensensor-api
 
 # Start opensensor API
-CMD ["/usr/src/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--reload"]
+CMD ["/usr/src/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--workers", "4", "--timeout", "30", "--reload"]
