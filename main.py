@@ -120,7 +120,7 @@ async def historical_temperatures(
     return matching_data
 
 
-def get_uniform_sample_pipeline():
+def get_uniform_sample_pipeline(device_id: str):
     # Define timestamp range and sampling interval
     start_date = datetime(2023, 1, 1)
     end_date = datetime(2023, 3, 22)
@@ -128,7 +128,7 @@ def get_uniform_sample_pipeline():
 
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
-        {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
+        {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}, "metadata.device_id": device_id}},
         {
             "$addFields": {
                 "group": {
@@ -160,12 +160,12 @@ def get_uniform_sample_pipeline():
 @app.get("/sampled-temp/{device_id}", response_model=Page[Temperature])
 async def historical_temperatures_sampled(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
-    params: Params = Params(),
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    size: int = Query(50, ge=1, le=100, description="Page size"),
 ):
-    pipeline = get_uniform_sample_pipeline()
+    pipeline = get_uniform_sample_pipeline(device_id)
 
-    offset = (params.page - 1) * params.size
-    size = params.size
+    offset = (page - 1) * size
 
     # Add $skip and $limit stages for pagination
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
@@ -175,7 +175,7 @@ async def historical_temperatures_sampled(
     data_count = list(db.Temperature.aggregate(pipeline))
     total_count = data_count[0]["total"] if data else 0
     print(data)
-    return Page(items=data, total=total_count, page=params.page, size=size, params=params)
+    return Page(items=data, total=total_count, page=page, size=size)
 
 
 @app.post("/environment/", response_model=Environment)
