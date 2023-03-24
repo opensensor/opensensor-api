@@ -120,11 +120,8 @@ async def historical_temperatures(
     return matching_data
 
 
-def get_uniform_sample_pipeline(device_id: str):
-    # Define timestamp range and sampling interval
-    start_date = datetime(2023, 1, 1)
-    end_date = datetime(2023, 3, 22)
-    sampling_interval = timedelta(hours=1)  # Adjust the sampling interval as needed
+def get_uniform_sample_pipeline(device_id: str, start_date: datetime, end_date: datetime):
+    sampling_interval = timedelta(minutes=20)  # Adjust the sampling interval as needed
 
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
@@ -160,9 +157,15 @@ def get_uniform_sample_pipeline(device_id: str):
 @app.get("/sampled-temp/{device_id}", response_model=Page[Temperature])
 async def historical_temperatures_sampled(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     size: int = Query(50, ge=1, le=100, description="Page size"),
 ):
+    if start_date is None:
+        start_date = datetime.utcnow() - timedelta(days=100)
+    if end_date is None:
+        end_date = datetime.utcnow()
     pipeline = get_uniform_sample_pipeline(device_id)
 
     offset = (page - 1) * size
