@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from fastapi import FastAPI, Path, Query
-from fastapi_pagination import Page, Params, add_pagination
+from fastapi_pagination import Page, add_pagination
 from fastapi_pagination.ext.pymongo import paginate as pymongo_paginate
 from pydantic import BaseModel
 
@@ -120,12 +120,19 @@ async def historical_temperatures(
     return matching_data
 
 
-def get_uniform_sample_pipeline(device_id: str, start_date: datetime, end_date: datetime, resolution: int):
+def get_uniform_sample_pipeline(
+    device_id: str, start_date: datetime, end_date: datetime, resolution: int
+):
     sampling_interval = timedelta(minutes=resolution)
 
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
-        {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}, "metadata.device_id": device_id}},
+        {
+            "$match": {
+                "timestamp": {"$gte": start_date, "$lte": end_date},
+                "metadata.device_id": device_id,
+            }
+        },
         {
             "$addFields": {
                 "group": {
