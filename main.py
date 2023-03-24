@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Generic, TypeVar
 
 from fastapi import FastAPI, Path, Query
-from fastapi_pagination import Page, add_pagination
+from fastapi_pagination import add_pagination
+from fastapi_pagination.default import Page as BasePage
+from fastapi_pagination.default import Params as BaseParams
 from fastapi_pagination.ext.pymongo import paginate as pymongo_paginate
 from pydantic import BaseModel
 
 from opensensor.utils import get_open_sensor_db
+
+T = TypeVar("T")
 
 app = FastAPI()
 
@@ -16,8 +21,12 @@ async def root():
     return {"message": "Welcome to OpenSensor.io!  Navigate to /docs for current Alpha API spec."}
 
 
-class CustomPage(Page):
-    size: int = Field(..., ge=1, le=1000, description="Page size")
+class Params(BaseParams):
+    size: int = Query(50, ge=1, le=1000, description="Page size")
+
+
+class Page(BasePage[T], Generic[T]):
+    __params_type__ = Params
 
 
 class DeviceMetadata(BaseModel):
@@ -106,7 +115,7 @@ async def record_CO2(device_metadata: DeviceMetadata, co2: CO2):
     return co2.dict()
 
 
-@app.get("/temp/{device_id}", response_model=CustomPage[Temperature])
+@app.get("/temp/{device_id}", response_model=Page[Temperature])
 async def historical_temperatures(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
 ):
@@ -165,7 +174,7 @@ def get_uniform_sample_pipeline(
     return pipeline
 
 
-@app.get("/sampled-temp/{device_id}", response_model=CustomPage[Temperature])
+@app.get("/sampled-temp/{device_id}", response_model=Page[Temperature])
 async def historical_temperatures_sampled(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
     start_date: datetime | None = None,
@@ -174,13 +183,12 @@ async def historical_temperatures_sampled(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     size: int = Query(50, ge=1, le=1000, description="Page size"),
 ):
+    offset = (page - 1) * size
     if start_date is None:
         start_date = datetime.utcnow() - timedelta(days=100)
     if end_date is None:
         end_date = datetime.utcnow()
     pipeline = get_uniform_sample_pipeline(device_id, start_date, end_date, resolution)
-
-    offset = (page - 1) * size
 
     # Add $skip and $limit stages for pagination
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
@@ -189,8 +197,7 @@ async def historical_temperatures_sampled(
     pipeline.append({"$count": "total"})
     data_count = list(db.Temperature.aggregate(pipeline))
     total_count = data_count[0]["total"] if data else 0
-    print(data)
-    return CustomPage(items=data, total=total_count, page=page, size=size)
+    return Page(items=data, total=total_count, page=page, size=size)
 
 
 @app.post("/environment/", response_model=Environment)
