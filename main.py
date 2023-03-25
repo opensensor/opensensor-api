@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Generic, TypeVar, Type
 
-from fastapi import FastAPI, Path, Query
+from fastapi import APIRoute, FastAPI, Path, Query
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
@@ -200,17 +200,17 @@ def sample_and_paginate_collection(
     return Page(items=data, total=total_count, page=page, size=size)
 
 
-@app.get("/temp/{device_id}", response_model=Page[Temperature])
-async def historical_temperatures(
+async def historical_data_route(
+    entity: Type[T],
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
     start_date: datetime | None = None,
     end_date: datetime | None = None,
     resolution: int = 30,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     size: int = Query(50, ge=1, le=1000, description="Page size"),
-):
+) -> Page[T]:
     return sample_and_paginate_collection(
-        Temperature,
+        entity,
         device_id=device_id,
         start_date=start_date,
         end_date=end_date,
@@ -218,6 +218,40 @@ async def historical_temperatures(
         page=page,
         size=size,
     )
+
+
+# Temperature route
+temperature_route = APIRoute(
+    "/temp/{device_id}",
+    historical_data_route,
+    response_model=Page[Temperature],
+    name="historical_temperatures",
+    methods=["GET"],
+)
+
+app.add_api_route(temperature_route)
+
+# Humidity route
+humidity_route = APIRoute(
+    "/humidity/{device_id}",
+    historical_data_route,
+    response_model=Page[Humidity],
+    name="historical_humidities",
+    methods=["GET"],
+)
+
+app.add_api_route(humidity_route)
+
+# CO2 route
+co2_route = APIRoute(
+    "/humidity/{device_id}",
+    historical_data_route,
+    response_model=Page[CO2],
+    name="historical_CO2",
+    methods=["GET"],
+)
+
+app.add_api_route(co2_route)
 
 
 @app.post("/environment/", response_model=Environment)
