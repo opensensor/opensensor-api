@@ -190,7 +190,8 @@ def sample_and_paginate_collection(
 
     db = get_open_sensor_db()
     collection = db[response_model.__name__]
-    data = list(collection.aggregate(pipeline))
+    raw_data = list(collection.aggregate(pipeline))
+    data = [response_model(**item) for item in raw_data]
     # Re-run for total page count
     pipeline.append({"$count": "total"})
     data_count = list(collection.aggregate(pipeline))
