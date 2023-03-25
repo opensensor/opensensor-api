@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Generic, TypeVar, Type
+from typing import Generic, Type, TypeVar
 
-from fastapi import APIRoute, FastAPI, Path, Query
+from fastapi import FastAPI, Path, Query
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
-from fastapi_pagination.ext.pymongo import paginate as pymongo_paginate
 from pydantic import BaseModel
 
 from opensensor.utils import get_open_sensor_db
@@ -122,7 +121,7 @@ def _get_project_projection(response_model: Type[T]):
     project_projection = {
         "_id": False,
     }
-    for field_name, model_field in response_model.__fields__.items():
+    for field_name, _ in response_model.__fields__.items():
         if field_name == "timestamp":
             project_projection["timestamp"] = "$timestamp"
         if field_name == "unit":
@@ -130,7 +129,6 @@ def _get_project_projection(response_model: Type[T]):
         else:
             project_projection[field_name] = f"${field_name}"
     return project_projection
-
 
 
 def get_uniform_sample_pipeline(
@@ -168,9 +166,7 @@ def get_uniform_sample_pipeline(
         },
         {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
-        {
-            "$project": _get_project_projection(response_model)
-        },
+        {"$project": _get_project_projection(response_model)},
         {"$sort": {"timestamp": 1}},  # Sort by timestamp in ascending order
         # {"$count": "total"}
     ]
@@ -184,10 +180,12 @@ def sample_and_paginate_collection(
     end_date: datetime,
     resolution: int,
     page: int,
-    size: int
+    size: int,
 ):
     offset = (page - 1) * size
-    pipeline = get_uniform_sample_pipeline(response_model, device_id, start_date, end_date, resolution)
+    pipeline = get_uniform_sample_pipeline(
+        response_model, device_id, start_date, end_date, resolution
+    )
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
     db = get_open_sensor_db()
@@ -220,38 +218,45 @@ async def historical_data_route(
     )
 
 
-# Temperature route
-temperature_route = APIRoute(
+def create_historical_data_route(entity: Type[T]):
+    async def historical_data_route(
+        device_id: str = Path(
+            title="The ID of the device about which to retrieve historical data."
+        ),
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        resolution: int = 30,
+        page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+        size: int = Query(50, ge=1, le=1000, description="Page size"),
+    ) -> Page[T]:
+        return sample_and_paginate_collection(
+            entity,
+            device_id=device_id,
+            start_date=start_date,
+            end_date=end_date,
+            resolution=resolution,
+            page=page,
+            size=size,
+        )
+
+    return historical_data_route
+
+
+app.add_api_route(
     "/temp/{device_id}",
-    historical_data_route,
+    create_historical_data_route(Temperature),
     response_model=Page[Temperature],
-    name="historical_temperatures",
     methods=["GET"],
 )
-
-app.add_api_route(temperature_route)
-
-# Humidity route
-humidity_route = APIRoute(
+app.add_api_route(
     "/humidity/{device_id}",
-    historical_data_route,
+    create_historical_data_route(Humidity),
     response_model=Page[Humidity],
-    name="historical_humidities",
     methods=["GET"],
 )
-
-app.add_api_route(humidity_route)
-
-# CO2 route
-co2_route = APIRoute(
-    "/humidity/{device_id}",
-    historical_data_route,
-    response_model=Page[CO2],
-    name="historical_CO2",
-    methods=["GET"],
+app.add_api_route(
+    "/CO2/{device_id}", create_historical_data_route(CO2), response_model=Page[CO2], methods=["GET"]
 )
-
-app.add_api_route(co2_route)
 
 
 @app.post("/environment/", response_model=Environment)
