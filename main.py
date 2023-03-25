@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Type
 
 from fastapi import FastAPI, Path, Query
 from fastapi_pagination import add_pagination
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from opensensor.utils import get_open_sensor_db
 
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
 app = FastAPI()
 
@@ -29,31 +29,34 @@ class Page(BasePage[T], Generic[T]):
     __params_type__ = Params
 
 
+class TimestampModel(BaseModel):
+    timestamp: datetime | None = None
+
+
 class DeviceMetadata(BaseModel):
     device_id: str
     name: str | None = None
 
 
-class Temperature(BaseModel):
+class Temperature(TimestampModel):
     temp: Decimal
     unit: str | None = None
-    timestamp: datetime | None = None
 
 
-class Humidity(BaseModel):
+class Humidity(TimestampModel):
     rh: Decimal
 
 
-class Pressure(BaseModel):
+class Pressure(TimestampModel):
     pressure: Decimal
     unit: str | None = None
 
 
-class Lux(BaseModel):
+class Lux(TimestampModel):
     percent: Decimal
 
 
-class CO2(BaseModel):
+class CO2(TimestampModel):
     ppm: Decimal
 
 
@@ -115,28 +118,33 @@ async def record_CO2(device_metadata: DeviceMetadata, co2: CO2):
     return co2.dict()
 
 
-@app.get("/temp/{device_id}", response_model=Page[Temperature])
-async def historical_temperatures(
-    device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
-):
-    db = get_open_sensor_db()
-    matching_data = pymongo_paginate(
-        db.Temperature,
-        {"metadata.device_id": device_id},
-        projection={
-            "_id": False,
-            "unit": "$metadata.unit",
-            "temp": "$temp",
-            "timestamp": "$timestamp",
-        },
-    )
-    return matching_data
+def _get_project_projection(response_model: Type[T]):
+    project_projection = {
+        "_id": False,
+    }
+    for field_name, model_field in response_model.__fields__.items():
+        if field_name == "timestamp":
+            project_projection["timestamp"] = "$timestamp"
+        if field_name == "unit":
+            project_projection["unit"] = "$metadata.unit"
+        else:
+            project_projection[field_name] = f"${field_name}"
+    return project_projection
+
 
 
 def get_uniform_sample_pipeline(
-    device_id: str, start_date: datetime, end_date: datetime, resolution: int
+    response_model: Type[T],
+    device_id: str,
+    start_date: datetime,
+    end_date: datetime,
+    resolution: int,
 ):
     sampling_interval = timedelta(minutes=resolution)
+    if start_date is None:
+        start_date = datetime.utcnow() - timedelta(days=100)
+    if end_date is None:
+        end_date = datetime.utcnow()
 
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
@@ -161,12 +169,7 @@ def get_uniform_sample_pipeline(
         {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
         {
-            "$project": {
-                "_id": False,
-                "unit": "$metadata.unit",
-                "temp": "$temp",
-                "timestamp": "$timestamp",  # Don't forget to include the timestamp field
-            }
+            "$project": _get_project_projection(response_model)
         },
         {"$sort": {"timestamp": 1}},  # Sort by timestamp in ascending order
         # {"$count": "total"}
@@ -174,8 +177,31 @@ def get_uniform_sample_pipeline(
     return pipeline
 
 
-@app.get("/sampled-temp/{device_id}", response_model=Page[Temperature])
-async def historical_temperatures_sampled(
+def sample_and_paginate_collection(
+    response_model: Type[T],
+    device_id: str,
+    start_date: datetime,
+    end_date: datetime,
+    resolution: int,
+    page: int,
+    size: int
+):
+    offset = (page - 1) * size
+    pipeline = get_uniform_sample_pipeline(response_model, device_id, start_date, end_date, resolution)
+    pipeline.extend([{"$skip": offset}, {"$limit": size}])
+
+    db = get_open_sensor_db()
+    collection = db[response_model.__name__]
+    data = list(collection.aggregate(pipeline))
+    # Re-run for total page count
+    pipeline.append({"$count": "total"})
+    data_count = list(collection.aggregate(pipeline))
+    total_count = data_count[0]["total"] if data else 0
+    return Page(items=data, total=total_count, page=page, size=size)
+
+
+@app.get("/temp/{device_id}", response_model=Page[Temperature])
+async def historical_temperatures(
     device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
     start_date: datetime | None = None,
     end_date: datetime | None = None,
@@ -183,21 +209,15 @@ async def historical_temperatures_sampled(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     size: int = Query(50, ge=1, le=1000, description="Page size"),
 ):
-    offset = (page - 1) * size
-    if start_date is None:
-        start_date = datetime.utcnow() - timedelta(days=100)
-    if end_date is None:
-        end_date = datetime.utcnow()
-    pipeline = get_uniform_sample_pipeline(device_id, start_date, end_date, resolution)
-
-    # Add $skip and $limit stages for pagination
-    pipeline.extend([{"$skip": offset}, {"$limit": size}])
-    db = get_open_sensor_db()
-    data = list(db.Temperature.aggregate(pipeline))
-    pipeline.append({"$count": "total"})
-    data_count = list(db.Temperature.aggregate(pipeline))
-    total_count = data_count[0]["total"] if data else 0
-    return Page(items=data, total=total_count, page=page, size=size)
+    return sample_and_paginate_collection(
+        Temperature,
+        device_id=device_id,
+        start_date=start_date,
+        end_date=end_date,
+        resolution=resolution,
+        page=page,
+        size=size,
+    )
 
 
 @app.post("/environment/", response_model=Environment)
