@@ -208,7 +208,7 @@ def convert_temperature(temp: Temperature, desired_unit: str) -> Decimal:
     elif temp.unit == "C" and desired_unit == "F":
         temp.temp = Decimal(temp.temp * 9 / 5 + 32)
     elif temp.unit == "C" and desired_unit == "K":
-        temp.temp = Decimal(temp.temp + 273.15)
+        temp.temp = Decimal(temp.temp + Decimal(273.15))
     elif temp.unit == "F" and desired_unit == "C":
         temp.temp = Decimal((temp.temp - 32) * 5 / 9)
     elif temp.unit == "F" and desired_unit == "K":
