@@ -271,7 +271,10 @@ app.add_api_route(
     "/CO2/{device_id}", create_historical_data_route(CO2), response_model=Page[CO2], methods=["GET"]
 )
 app.add_api_route(
-    "/moisture/{device_id}", create_historical_data_route(Moisture), response_model=Page[Moisture], methods=["GET"]
+    "/moisture/{device_id}",
+    create_historical_data_route(Moisture),
+    response_model=Page[Moisture],
+    methods=["GET"],
 )
 
 
