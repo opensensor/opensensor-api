@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Generic, List, Type, TypeVar
 
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI, Path, Query, Response
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
@@ -70,6 +70,7 @@ class Environment(BaseModel):
     pressure: Pressure | None = None
     lux: Lux | None = None
     co2: CO2 | None = None
+    moisture: Moisture | None = None
 
 
 def _record_data_point_to_ts_collection(
@@ -269,9 +270,12 @@ app.add_api_route(
 app.add_api_route(
     "/CO2/{device_id}", create_historical_data_route(CO2), response_model=Page[CO2], methods=["GET"]
 )
+app.add_api_route(
+    "/moisture/{device_id}", create_historical_data_route(Moisture), response_model=Page[Moisture], methods=["GET"]
+)
 
 
-@app.post("/environment/", response_model=Environment)
+@app.post("/environment/")
 async def record_environment(environment: Environment):
     db = get_open_sensor_db()
     if environment.temp:
@@ -294,8 +298,12 @@ async def record_environment(environment: Environment):
         _record_data_point_to_ts_collection(
             db.CO2, "ppm", environment.device_metadata, environment.co2
         )
+    if environment.moisture:
+        _record_data_point_to_ts_collection(
+            db.Moisture, "reading", environment.device_metadata, environment.moisture
+        )
 
-    return environment.dict()
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 add_pagination(app)
