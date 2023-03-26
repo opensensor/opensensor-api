@@ -152,7 +152,7 @@ async def record_moisture_readings(device_metadata: DeviceMetadata, moisture: Mo
 
 
 @app.post("/pH/", response_model=PH)
-async def record_moisture_readings(device_metadata: DeviceMetadata, pH: PH):
+async def record_pH(device_metadata: DeviceMetadata, pH: PH):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, pH)
     return Response(status_code=status.HTTP_201_CREATED)
