@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Generic, Type, TypeVar
+from typing import Generic, List, Type, TypeVar
 
 from fastapi import FastAPI, Path, Query
 from fastapi_pagination import add_pagination
@@ -121,11 +121,11 @@ async def record_co2(device_metadata: DeviceMetadata, co2: CO2):
     return co2.dict()
 
 
-@app.post("/CO2/", response_model=Moisture)
+@app.post("/moisture/", response_model=Moisture)
 async def record_moisture_readings(device_metadata: DeviceMetadata, moisture: Moisture):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Moisture, "readings", device_metadata, moisture)
-    return co2.dict()
+    return moisture.dict()
 
 
 def _get_project_projection(response_model: Type[T]):
