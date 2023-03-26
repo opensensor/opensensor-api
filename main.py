@@ -70,6 +70,10 @@ class CO2(TimestampModel):
     ppm: Decimal
 
 
+class PH(TimestampModel):
+    pH: Decimal
+
+
 class Moisture(TimestampModel):
     readings: List[int] | str
 
@@ -88,6 +92,7 @@ class Environment(BaseModel):
     lux: Lux | None = None
     co2: CO2 | None = None
     moisture: Moisture | None = None
+    pH: PH | None = None
 
 
 def _record_data_point_to_ts_collection(
@@ -108,42 +113,49 @@ def _record_data_point_to_ts_collection(
 async def record_humidity(device_metadata: DeviceMetadata, rh: Humidity):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Humidity, "rh", device_metadata, rh)
-    return rh.dict()
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/temp/", response_model=Temperature)
 async def record_temperature(device_metadata: DeviceMetadata, temp: Temperature):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Temperature, "temp", device_metadata, temp)
-    return temp.dict()
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/pressure/", response_model=Pressure)
 async def record_pressure(device_metadata: DeviceMetadata, pressure: Pressure):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Pressure, "pressure", device_metadata, pressure)
-    return pressure.dict()
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/lux/", response_model=Lux)
 async def record_lux(device_metadata: DeviceMetadata, lux: Lux):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Lux, "percent", device_metadata, lux)
-    return lux.dict()
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/CO2/", response_model=CO2)
 async def record_co2(device_metadata: DeviceMetadata, co2: CO2):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.CO2, "ppm", device_metadata, co2)
-    return co2.dict()
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/moisture/", response_model=Moisture)
 async def record_moisture_readings(device_metadata: DeviceMetadata, moisture: Moisture):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Moisture, "readings", device_metadata, moisture)
-    return moisture.dict()
+    return Response(status_code=status.HTTP_201_CREATED)
+
+
+@app.post("/pH/", response_model=PH)
+async def record_moisture_readings(device_metadata: DeviceMetadata, pH: PH):
+    db = get_open_sensor_db()
+    _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, pH)
+    return Response(status_code=status.HTTP_201_CREATED)
 
 
 def _get_project_projection(response_model: Type[T]):
@@ -325,6 +337,12 @@ app.add_api_route(
     response_model=Page[Moisture],
     methods=["GET"],
 )
+app.add_api_route(
+    "/pH/{device_id}",
+    create_historical_data_route(PH),
+    response_model=Page[PH],
+    methods=["GET"],
+)
 
 
 @app.post("/environment/")
@@ -353,6 +371,10 @@ async def record_environment(environment: Environment):
     if environment.moisture:
         _record_data_point_to_ts_collection(
             db.Moisture, "readings", environment.device_metadata, environment.moisture
+        )
+    if environment.pH:
+        _record_data_point_to_ts_collection(
+            db.pH, "pH", environment.device_metadata, environment.pH
         )
 
     return Response(status_code=status.HTTP_201_CREATED)
