@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Generic, List, Type, TypeVar
@@ -6,7 +7,7 @@ from fastapi import FastAPI, Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from opensensor.utils import get_open_sensor_db
 
@@ -60,7 +61,13 @@ class CO2(TimestampModel):
 
 
 class Moisture(TimestampModel):
-    readings: List[int]
+    readings: List[int] | str
+
+    @validator("readings")
+    def parse_readings(cls, value):
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
 
 
 class Environment(BaseModel):
