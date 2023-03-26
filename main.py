@@ -202,6 +202,29 @@ def get_uniform_sample_pipeline(
     return pipeline
 
 
+def convert_temperature(temp: Temperature, desired_unit: str) -> Decimal:
+    if temp.unit == desired_unit or not temp.unit:
+        return temp
+    elif temp.unit == "C" and desired_unit == "F":
+        temp.temp = Decimal(temp.temp * 9 / 5 + 32)
+    elif temp.unit == "C" and desired_unit == "K":
+        temp.temp = Decimal(temp.temp + 273.15)
+    elif temp.unit == "F" and desired_unit == "C":
+        temp.temp = Decimal((temp.temp - 32) * 5 / 9)
+    elif temp.unit == "F" and desired_unit == "K":
+        temp.temp = Decimal((temp.temp + 459.67) * 5 / 9)
+    elif temp.unit == "K" and desired_unit == "C":
+        temp.temp = Decimal(temp.temp - 273.15)
+    elif temp.unit == "K" and desired_unit == "F":
+        temp.temp = Decimal(temp.temp * 9 / 5 - 459.67)
+    else:
+        raise ValueError(f"Unsupported temperature unit conversion: {temp.unit} to {desired_unit}")
+    temp.unit = desired_unit
+    return temp
+
+
+
+
 def sample_and_paginate_collection(
     response_model: Type[T],
     device_id: str,
@@ -210,6 +233,7 @@ def sample_and_paginate_collection(
     resolution: int,
     page: int,
     size: int,
+    unit: str,
 ):
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
@@ -224,6 +248,9 @@ def sample_and_paginate_collection(
     for item in raw_data:
         item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
     data = [response_model(**item) for item in raw_data]
+    if response_model == Temperature and unit:
+        for t in data:
+            convert_temperature(t, unit)
     # Re-run for total page count
     pipeline.append({"$count": "total"})
     data_count = list(collection.aggregate(pipeline))
@@ -261,6 +288,7 @@ def create_historical_data_route(entity: Type[T]):
         resolution: int = 30,
         page: int = Query(1, ge=1, description="Page number (1-indexed)"),
         size: int = Query(50, ge=1, le=1000, description="Page size"),
+        unit: str | None = None,
     ) -> Page[T]:
         return sample_and_paginate_collection(
             entity,
@@ -270,6 +298,7 @@ def create_historical_data_route(entity: Type[T]):
             resolution=resolution,
             page=page,
             size=size,
+            unit=unit,
         )
 
     return historical_data_route
