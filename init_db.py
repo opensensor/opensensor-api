@@ -44,3 +44,11 @@ try:
     )
 except pymongo.errors.CollectionInvalid:
     print("CO2 collection Already exists, skipping ...")
+
+try:
+    db.create_collection(
+        "Moisture",
+        timeseries={"timeField": "timestamp", "metaField": "metadata", "granularity": "minutes"},
+    )
+except pymongo.errors.CollectionInvalid:
+    print("Moisture collection Already exists, skipping ...")

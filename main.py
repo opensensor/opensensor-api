@@ -59,6 +59,10 @@ class CO2(TimestampModel):
     ppm: Decimal
 
 
+class Moisture(TimestampModel):
+    readings: List[int]
+
+
 class Environment(BaseModel):
     device_metadata: DeviceMetadata
     temp: Temperature | None = None
@@ -111,9 +115,16 @@ async def record_lux(device_metadata: DeviceMetadata, lux: Lux):
 
 
 @app.post("/CO2/", response_model=CO2)
-async def record_CO2(device_metadata: DeviceMetadata, co2: CO2):
+async def record_co2(device_metadata: DeviceMetadata, co2: CO2):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.CO2, "ppm", device_metadata, co2)
+    return co2.dict()
+
+
+@app.post("/CO2/", response_model=Moisture)
+async def record_moisture_readings(device_metadata: DeviceMetadata, moisture: Moisture):
+    db = get_open_sensor_db()
+    _record_data_point_to_ts_collection(db.Moisture, "readings", device_metadata, moisture)
     return co2.dict()
 
 
