@@ -223,8 +223,6 @@ def convert_temperature(temp: Temperature, desired_unit: str) -> Decimal:
     return temp
 
 
-
-
 def sample_and_paginate_collection(
     response_model: Type[T],
     device_id: str,

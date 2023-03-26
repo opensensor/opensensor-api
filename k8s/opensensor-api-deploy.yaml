@@ -6,7 +6,7 @@ metadata:
   labels:
     app: opensensor-api
 spec:
-  replicas: 2
+  replicas: 4
   selector:
     matchLabels:
       app: opensensor-api
@@ -31,7 +31,7 @@ spec:
               memory: "256Mi"
               cpu: "150m"
       topologySpreadConstraints:
-        - maxSkew: 1
+        - maxSkew: 2
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: DoNotSchedule
           labelSelector:
