@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Generic, List, Type, TypeVar
 
-from fastapi import FastAPI, Path, Query, Response
+from fastapi import FastAPI, Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
