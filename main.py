@@ -1,9 +1,10 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Generic, List, Type, TypeVar
 
 from fastapi import FastAPI, Path, Query, Response, status
+from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
@@ -13,7 +14,16 @@ from opensensor.utils import get_open_sensor_db
 
 T = TypeVar("T", bound=BaseModel)
 
+
+class JSONTZEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return jsonable_encoder(obj)
+
+
 app = FastAPI()
+app.json_encoder = JSONTZEncoder
 
 
 @app.get("/")
@@ -210,6 +220,9 @@ def sample_and_paginate_collection(
     db = get_open_sensor_db()
     collection = db[response_model.__name__]
     raw_data = list(collection.aggregate(pipeline))
+    # Add UTC offset to timestamp field
+    for item in raw_data:
+        item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
     data = [response_model(**item) for item in raw_data]
     # Re-run for total page count
     pipeline.append({"$count": "total"})
