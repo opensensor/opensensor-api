@@ -300,7 +300,7 @@ async def record_environment(environment: Environment):
         )
     if environment.moisture:
         _record_data_point_to_ts_collection(
-            db.Moisture, "reading", environment.device_metadata, environment.moisture
+            db.Moisture, "readings", environment.device_metadata, environment.moisture
         )
 
     return Response(status_code=status.HTTP_201_CREATED)
