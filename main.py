@@ -73,6 +73,9 @@ class CO2(TimestampModel):
 class PH(TimestampModel):
     pH: Decimal
 
+    def __repr__(self):
+        return "pH"
+
 
 class Moisture(TimestampModel):
     readings: List[int] | str
@@ -152,9 +155,9 @@ async def record_moisture_readings(device_metadata: DeviceMetadata, moisture: Mo
 
 
 @app.post("/pH/", response_model=PH)
-async def record_pH(device_metadata: DeviceMetadata, pH: PH):
+async def record_ph(device_metadata: DeviceMetadata, ph: PH):
     db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, pH)
+    _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, ph)
     return Response(status_code=status.HTTP_201_CREATED)
 
 
@@ -252,7 +255,7 @@ def sample_and_paginate_collection(
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
     db = get_open_sensor_db()
-    collection = db[response_model.__name__]
+    collection = db[str(response_model)]
     raw_data = list(collection.aggregate(pipeline))
     # Add UTC offset to timestamp field
     for item in raw_data:
@@ -266,26 +269,6 @@ def sample_and_paginate_collection(
     data_count = list(collection.aggregate(pipeline))
     total_count = data_count[0]["total"] if data else 0
     return Page(items=data, total=total_count, page=page, size=size)
-
-
-async def historical_data_route(
-    entity: Type[T],
-    device_id: str = Path(title="The ID of the device about which to retrieve historical data."),
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
-    resolution: int = 30,
-    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-    size: int = Query(50, ge=1, le=1000, description="Page size"),
-) -> Page[T]:
-    return sample_and_paginate_collection(
-        entity,
-        device_id=device_id,
-        start_date=start_date,
-        end_date=end_date,
-        resolution=resolution,
-        page=page,
-        size=size,
-    )
 
 
 def create_historical_data_route(entity: Type[T]):
