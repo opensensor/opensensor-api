@@ -238,6 +238,7 @@ def convert_temperature(temp: Temperature, desired_unit: str) -> Decimal:
     temp.unit = desired_unit
     return temp
 
+
 def get_collection_name(response_model: Type[T]):
     if hasattr(response_model, "collection_name"):
         return response_model.collection_name()
