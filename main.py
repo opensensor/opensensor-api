@@ -73,7 +73,8 @@ class CO2(TimestampModel):
 class PH(TimestampModel):
     pH: Decimal
 
-    def __repr__(self):
+    @classmethod
+    def collection_name(cls):
         return "pH"
 
 
@@ -237,6 +238,11 @@ def convert_temperature(temp: Temperature, desired_unit: str) -> Decimal:
     temp.unit = desired_unit
     return temp
 
+def get_collection_name(response_model: Type[T]):
+    if hasattr(response_model, "collection_name"):
+        return response_model.collection_name()
+    return response_model.__name__
+
 
 def sample_and_paginate_collection(
     response_model: Type[T],
@@ -255,7 +261,7 @@ def sample_and_paginate_collection(
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
     db = get_open_sensor_db()
-    collection = db[str(response_model)]
+    collection = db[get_collection_name(response_model)]
     raw_data = list(collection.aggregate(pipeline))
     # Add UTC offset to timestamp field
     for item in raw_data:
