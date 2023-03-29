@@ -12,6 +12,7 @@ ipython = "*"
 simplejson = "*"
 install = "*"
 fastapi-pagination = {extras = ["pymongo"], version = "*"}
+fastapi-users = "*"
 
 [dev-packages]
 
