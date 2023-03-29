@@ -1,18 +1,29 @@
 import json
+import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Generic, List, Type, TypeVar
 
+from beanie import init_beanie
 from fastapi import FastAPI, Path, Query, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
-from pydantic import BaseModel, validator
+from fastapi_users.db import BeanieBaseUser, BeanieUserDatabase
+from pydantic import BaseModel, Field, validator
 
-from opensensor.utils import get_open_sensor_db
+from opensensor.utils import get_motor_mongo_connection, get_open_sensor_db
 
 T = TypeVar("T", bound=BaseModel)
+
+
+class User(BeanieBaseUser[uuid.UUID]):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+
+
+async def get_user_db():
+    yield BeanieUserDatabase(User)
 
 
 class JSONTZEncoder(json.JSONEncoder):
@@ -24,6 +35,17 @@ class JSONTZEncoder(json.JSONEncoder):
 
 app = FastAPI()
 app.json_encoder = JSONTZEncoder
+
+
+@app.on_event("startup")
+async def on_startup():
+    db = get_motor_mongo_connection()
+    await init_beanie(
+        database=db,
+        document_models=[
+            User,
+        ],
+    )
 
 
 @app.get("/")

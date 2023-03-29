@@ -1,6 +1,14 @@
 import os
 
+import motor.motor_asyncio
 from pymongo import MongoClient
+
+
+def get_motor_mongo_connection():
+    connection_str = os.environ.get("OPENSENSOR_DB") or ""
+    client = motor.motor_asyncio.AsyncIOMotorClient(connection_str, uuidRepresentation="standard")
+    db = client["default"]
+    return db
 
 
 def get_mongo_connection():
