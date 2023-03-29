@@ -1,9 +1,11 @@
+import datetime
 import json
 
 from beanie import init_beanie
 from fastapi import Depends, FastAPI
+from fastapi.encoders import jsonable_encoder
 
-from opensensor.db import User, db
+from opensensor.db import User, get_motor_mongo_connection
 from opensensor.schemas import UserCreate, UserRead, UserUpdate
 from opensensor.users import auth_backend, current_active_user, fastapi_users
 
@@ -18,9 +20,7 @@ class JSONTZEncoder(json.JSONEncoder):
 app = FastAPI()
 app.json_encoder = JSONTZEncoder
 
-app.include_router(
-    fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"]
-)
+app.include_router(fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"])
 app.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="/auth",

@@ -11,8 +11,7 @@ from fastapi_users.authentication import (
 )
 from fastapi_users.db import BeanieUserDatabase, ObjectIDIDMixin
 
-from app.db import User, get_user_db
-
+from opensensor.db import User, get_user_db
 
 SECRET = os.environ.get("OPENSENSOR_SECRET") or "SECRET"
 

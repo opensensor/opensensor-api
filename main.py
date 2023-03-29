@@ -3,15 +3,14 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Generic, List, Type, TypeVar
 
-from fastapi import FastAPI, Path, Query, Response, status
-from fastapi.encoders import jsonable_encoder
+from fastapi import Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
 from pydantic import BaseModel, validator
 
-from opensensor.db import get_motor_mongo_connection, get_open_sensor_db
 from opensensor.app import app
+from opensensor.db import get_open_sensor_db
 
 T = TypeVar("T", bound=BaseModel)
 
