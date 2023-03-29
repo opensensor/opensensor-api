@@ -10,12 +10,32 @@ from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
+from fastapi_users.authentication import (
+    AuthenticationBackend,
+    BearerTransport,
+    JWTStrategy,
+)
 from fastapi_users.db import BeanieBaseUser, BeanieUserDatabase
 from pydantic import BaseModel, Field, validator
 
 from opensensor.utils import get_motor_mongo_connection, get_open_sensor_db
 
 T = TypeVar("T", bound=BaseModel)
+SECRET = "SECRET"
+
+
+bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
+
+
+def get_jwt_strategy() -> JWTStrategy:
+    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+
+
+auth_backend = AuthenticationBackend(
+    name="jwt",
+    transport=bearer_transport,
+    get_strategy=get_jwt_strategy,
+)
 
 
 class User(BeanieBaseUser[uuid.UUID]):
