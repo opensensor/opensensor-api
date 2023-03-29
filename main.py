@@ -68,7 +68,7 @@ class PH(TimestampModel):
 
 
 class Moisture(TimestampModel):
-    readings: List[int] | str
+    readings: List[Decimal] | str
 
     @validator("readings")
     def parse_readings(cls, value):
