@@ -7,10 +7,29 @@ from fastapi import Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
+from fastapi.security import OAuth2AuthorizationCodeBearer
+from fief_client import FiefAccessTokenInfo, FiefAsync
+from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, validator
 
 from opensensor.app import app
 from opensensor.db import get_open_sensor_db
+
+
+fief = FiefAsync(
+    "http://localhost:8000",
+    "YOUR_CLIENT_ID",
+    "YOUR_CLIENT_SECRET",
+)
+
+scheme = OAuth2AuthorizationCodeBearer(
+    "http://localhost:8000/authorize",
+    "http://localhost:8000/api/token",
+    scopes={"openid": "openid", "offline_access": "offline_access"},
+    auto_error=False,
+)
+
+auth = FiefAuth(fief, scheme)
 
 T = TypeVar("T", bound=BaseModel)
 
