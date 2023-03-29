@@ -1,71 +1,19 @@
 import json
-import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Generic, List, Type, TypeVar
 
-from beanie import init_beanie
 from fastapi import FastAPI, Path, Query, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
-from fastapi_users.authentication import (
-    AuthenticationBackend,
-    BearerTransport,
-    JWTStrategy,
-)
-from fastapi_users.db import BeanieBaseUser, BeanieUserDatabase
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, validator
 
-from opensensor.utils import get_motor_mongo_connection, get_open_sensor_db
+from opensensor.db import get_motor_mongo_connection, get_open_sensor_db
+from opensensor.app import app
 
 T = TypeVar("T", bound=BaseModel)
-SECRET = "SECRET"
-
-
-bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
-
-
-def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
-
-
-auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=bearer_transport,
-    get_strategy=get_jwt_strategy,
-)
-
-
-class User(BeanieBaseUser[uuid.UUID]):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-
-
-async def get_user_db():
-    yield BeanieUserDatabase(User)
-
-
-class JSONTZEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        return jsonable_encoder(obj)
-
-
-app = FastAPI()
-app.json_encoder = JSONTZEncoder
-
-
-@app.on_event("startup")
-async def on_startup():
-    db = get_motor_mongo_connection()
-    await init_beanie(
-        database=db,
-        document_models=[
-            User,
-        ],
-    )
 
 
 @app.get("/")

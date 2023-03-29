@@ -1,5 +1,8 @@
+import uuid
 import os
 
+from beanie import PydanticObjectId
+from fastapi_users.db import BeanieBaseUser, BeanieUserDatabase
 import motor.motor_asyncio
 from pymongo import MongoClient
 
@@ -21,3 +24,11 @@ def get_open_sensor_db():
     client = get_mongo_connection()
     db = client["default"]
     return db
+
+
+class User(BeanieBaseUser[uuid.UUID]):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+
+
+async def get_user_db():
+    yield BeanieUserDatabase(User)
