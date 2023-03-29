@@ -68,11 +68,12 @@ class PH(TimestampModel):
 
 
 class Moisture(TimestampModel):
-    readings: List[int|Decimal] | str
+    readings: List[int | Decimal] | str
 
     @validator("readings")
     def parse_readings(cls, value):
         if isinstance(value, str):
+            value = value.replace("Decimal('", "").replace("')", "")
             return json.loads(value)
         return value
 
