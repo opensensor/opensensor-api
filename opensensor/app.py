@@ -55,7 +55,7 @@ async def protected(
 
 @app.get("/authenticated-route")
 async def authenticated_route(user: User = Depends(auth.current_user())):
-    return {"message": f"Hello {user.email}!"}
+    return {"message": f"Hello {user}"}
 
 
 @app.on_event("startup")
