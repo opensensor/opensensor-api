@@ -6,8 +6,7 @@ from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 
 from opensensor.db import User, get_motor_mongo_connection
-from opensensor.schemas import UserCreate, UserRead, UserUpdate
-from opensensor.users import auth_backend, current_active_user, fastapi_users
+from opensensor.users import current_active_user
 
 
 class JSONTZEncoder(json.JSONEncoder):
@@ -19,28 +18,6 @@ class JSONTZEncoder(json.JSONEncoder):
 
 app = FastAPI()
 app.json_encoder = JSONTZEncoder
-
-app.include_router(fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"])
-app.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_reset_password_router(),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_verify_router(UserRead),
-    prefix="/auth",
-    tags=["auth"],
-)
-app.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/users",
-    tags=["users"],
-)
 
 
 @app.get("/authenticated-route")
