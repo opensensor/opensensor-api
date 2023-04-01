@@ -31,7 +31,7 @@ async def health_check():
 
 @app.get("/auth-callback", name="auth_callback")
 async def auth_callback(request: Request, response: Response, code: str = Query(...)):
-    redirect_uri = request.url_for("auth_callback")
+    redirect_uri = str(AnyHttpUrl(scheme="https", host=request.url.hostname, path="/auth-callback"))
     tokens, _ = await fief.auth_callback(code, redirect_uri)
 
     response = RedirectResponse(request.url_for("protected"))
