@@ -6,7 +6,6 @@ from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fief_client import FiefUserInfo
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from opensensor.db import User, get_motor_mongo_connection
@@ -22,8 +21,6 @@ class JSONTZEncoder(json.JSONEncoder):
 
 app = FastAPI()
 app.json_encoder = JSONTZEncoder
-# Add TrustedHostMiddleware and XForwardedMiddleware
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["api.opensensor.com"])
 app.add_middleware(ProxyHeadersMiddleware)
 
 
