@@ -4,10 +4,10 @@ import json
 from beanie import init_beanie
 from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.proxy_headers import ProxyHeadersMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fief_client import FiefUserInfo
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.xforwarded import XForwardedMiddleware
 
 from opensensor.db import User, get_motor_mongo_connection
 from opensensor.users import SESSION_COOKIE_NAME, auth, fief
@@ -24,7 +24,7 @@ app = FastAPI()
 app.json_encoder = JSONTZEncoder
 # Add TrustedHostMiddleware and XForwardedMiddleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["api.opensensor.com"])
-app.add_middleware(XForwardedMiddleware, trusted_hosts="*")
+app.add_middleware(ProxyHeadersMiddleware)
 
 
 @app.get("/auth-callback", name="auth_callback")
