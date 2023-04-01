@@ -24,6 +24,11 @@ app.json_encoder = JSONTZEncoder
 app.add_middleware(ProxyHeadersMiddleware)
 
 
+@app.get("/health")
+async def health_check():
+    return {"status": "OK"}
+
+
 @app.get("/auth-callback", name="auth_callback")
 async def auth_callback(request: Request, response: Response, code: str = Query(...)):
     redirect_uri = request.url_for("auth_callback")
