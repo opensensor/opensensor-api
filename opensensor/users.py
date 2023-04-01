@@ -10,7 +10,7 @@ class CustomFiefAuth(FiefAuth):
     client: FiefAsync
 
     async def get_unauthorized_response(self, request: Request, response: Response):
-        #redirect_uri = str(AnyHttpUrl(scheme="https", host=request.url.hostname, path="/auth-callback"))
+        # redirect_uri = str(AnyHttpUrl(scheme="https", host=request.url.hostname, path="/auth-callback"))
         redirect_uri = request.url_for("auth_callback")
         auth_url = await self.client.auth_url(redirect_uri, scope=["openid"])
         raise HTTPException(
