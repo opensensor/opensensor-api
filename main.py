@@ -7,7 +7,11 @@ from fastapi import Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
-from pydantic import BaseModel, validator
+
+from fastapi.security import OAuth2AuthorizationCodeBearer
+from fief_client import FiefAccessTokenInfo, FiefAsync
+from fief_client.integrations.fastapi import FiefAuth
+from pydantic import BaseModel
 
 from opensensor.app import app
 from opensensor.db import get_open_sensor_db
@@ -26,67 +30,6 @@ class Params(BaseParams):
 
 class Page(BasePage[T], Generic[T]):
     __params_type__ = Params
-
-
-class TimestampModel(BaseModel):
-    timestamp: datetime | None = None
-
-
-class DeviceMetadata(BaseModel):
-    device_id: str
-    name: str | None = None
-
-
-class Temperature(TimestampModel):
-    temp: Decimal
-    unit: str | None = None
-
-
-class Humidity(TimestampModel):
-    rh: Decimal
-
-
-class Pressure(TimestampModel):
-    pressure: Decimal
-    unit: str | None = None
-
-
-class Lux(TimestampModel):
-    percent: Decimal
-
-
-class CO2(TimestampModel):
-    ppm: Decimal
-
-
-class PH(TimestampModel):
-    pH: Decimal
-
-    @classmethod
-    def collection_name(cls):
-        return "pH"
-
-
-class Moisture(TimestampModel):
-    readings: List[float | Decimal | int] | str
-
-    @validator("readings")
-    def parse_readings(cls, value):
-        if isinstance(value, str):
-            value = value.replace("Decimal('", "").replace("')", "")
-            return json.loads(value)
-        return value
-
-
-class Environment(BaseModel):
-    device_metadata: DeviceMetadata
-    temp: Temperature | None = None
-    rh: Humidity | None = None
-    pressure: Pressure | None = None
-    lux: Lux | None = None
-    co2: CO2 | None = None
-    moisture: Moisture | None = None
-    pH: PH | None = None
 
 
 def _record_data_point_to_ts_collection(
