@@ -7,10 +7,6 @@ from fastapi import Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
-
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from fief_client import FiefAccessTokenInfo, FiefAsync
-from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel
 
 from opensensor.app import app
