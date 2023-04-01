@@ -7,7 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fief_client import FiefUserInfo
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from opensensor.db import User, get_motor_mongo_connection
 from opensensor.users import SESSION_COOKIE_NAME, auth, fief
