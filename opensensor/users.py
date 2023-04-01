@@ -1,11 +1,9 @@
 import os
-from typing import Optional
 
-from beanie import PydanticObjectId
-from fastapi import Depends, Request
+from fastapi import HTTPException, Request, Response, status
+from fastapi.security import APIKeyCookie
+from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
-
-from opensensor.db import User, get_user_db
 
 
 class CustomFiefAuth(FiefAuth):
