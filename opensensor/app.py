@@ -2,15 +2,13 @@ import datetime
 import json
 
 from beanie import init_beanie
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
+from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.security import APIKeyCookie
-from fief_client import FiefAsync, FiefUserInfo
-from fief_client.integrations.fastapi import FiefAuth
+from fief_client import FiefUserInfo
 
 from opensensor.db import User, get_motor_mongo_connection
-from opensensor.users import auth
+from opensensor.users import SESSION_COOKIE_NAME, auth, fief
 
 
 class JSONTZEncoder(json.JSONEncoder):
@@ -22,6 +20,7 @@ class JSONTZEncoder(json.JSONEncoder):
 
 app = FastAPI()
 app.json_encoder = JSONTZEncoder
+
 
 @app.get("/auth-callback", name="auth_callback")
 async def auth_callback(request: Request, response: Response, code: str = Query(...)):
@@ -44,9 +43,8 @@ async def auth_callback(request: Request, response: Response, code: str = Query(
 async def protected(
     user: FiefUserInfo = Depends(auth.current_user()),
 ):
-    return HTMLResponse(
-        f"<h1>You are authenticated. Your user email is {user['email']}</h1>"
-    )
+    return HTMLResponse(f"<h1>You are authenticated. Your user email is {user['email']}</h1>")
+
 
 @app.get("/authenticated-route")
 async def authenticated_route(user: User = Depends(auth.current_user())):
