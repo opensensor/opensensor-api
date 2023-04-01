@@ -6,11 +6,10 @@ from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fief_client import FiefUserInfo
-from pydantic import AnyHttpUrl
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from opensensor.db import User, get_motor_mongo_connection
-from opensensor.users import SESSION_COOKIE_NAME, auth, fief
+from opensensor.users import SESSION_COOKIE_NAME, auth, fief, get_redirect_uri
 
 
 class JSONTZEncoder(json.JSONEncoder):
@@ -32,7 +31,7 @@ async def health_check():
 
 @app.get("/auth-callback", name="auth_callback")
 async def auth_callback(request: Request, response: Response, code: str = Query(...)):
-    redirect_uri = str(AnyHttpUrl(scheme="https", host=request.url.hostname, path="/auth-callback"))
+    redirect_uri = get_redirect_uri(request)
     tokens, _ = await fief.auth_callback(code, redirect_uri)
 
     response = RedirectResponse(request.url_for("protected"))
