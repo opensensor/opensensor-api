@@ -4,13 +4,16 @@ from fastapi import HTTPException, Request, Response, status
 from fastapi.security import APIKeyCookie
 from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
+from pydantic import AnyHttpUrl
 
 
 class CustomFiefAuth(FiefAuth):
     client: FiefAsync
 
     async def get_unauthorized_response(self, request: Request, response: Response):
-        redirect_uri = str(AnyHttpUrl(scheme="https", host=request.url.hostname, path="/auth-callback"))
+        redirect_uri = str(
+            AnyHttpUrl(scheme="https", host=request.url.hostname, path="/auth-callback")
+        )
         auth_url = await self.client.auth_url(redirect_uri, scope=["openid"])
         raise HTTPException(
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,

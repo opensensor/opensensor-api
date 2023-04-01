@@ -23,6 +23,18 @@ spec:
                 name: opensensor-secrets
           ports:
           - containerPort: 8010
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8010
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8010
+            initialDelaySeconds: 5
+            periodSeconds: 5
           resources:
             requests:
               memory: "128Mi"

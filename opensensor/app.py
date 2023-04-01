@@ -6,6 +6,7 @@ from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fief_client import FiefUserInfo
+from pydantic import AnyHttpUrl
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from opensensor.db import User, get_motor_mongo_connection
