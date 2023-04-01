@@ -38,4 +38,4 @@ USER opensensor-api
 ENV TZ=UTC
 
 # Start opensensor API
-CMD ["/usr/src/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--workers", "4", "--timeout-keep-alive", "30", "--reload"]
+CMD ["/usr/src/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--workers", "4", "--timeout-keep-alive", "30"]
