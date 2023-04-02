@@ -66,18 +66,13 @@ async def auth_callback(request: Request, response: Response, code: str = Query(
     return response
 
 
-@app.get("/protected", name="protected")
-async def protected(
-    user: FiefUserInfo = Depends(auth.current_user()),
-):
-    return HTMLResponse(f"<h1>You are authenticated. Your user email is {user['email']}</h1>")
-
-
 @app.post("/generate-api-key")
 async def generate_api_key(
-    description: str = Body(...), device_id: str = Body(...), user_dict: Dict = Depends(auth.current_user())
+    description: str = Body(...), device_id: str = Body(...), access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated())
 ):
-    user_id = user_dict["sub"]
-    user = get_or_create_user(user_id)
-    new_api_key = add_api_key(user, description, device_id)
-    return {"message": f"New API key generated for user {user_id}", "api_key": new_api_key}
+    print(access_token_info)
+    #user_id = user_dict["sub"]
+    #user = get_or_create_user(user_id)
+    #new_api_key = add_api_key(user, description, device_id)
+    #return {"message": f"New API key generated for user {user_id}", "api_key": new_api_key}
+    return {"access_token_info": access_token_info}
