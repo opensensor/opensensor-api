@@ -78,7 +78,7 @@ def add_api_key(user: User, description: str, device_id: str) -> APIKey:
         description=description,
     )
     user.api_keys.append(new_api_key)
-    users_db.update_one({"_id":  Binary.from_uuid(UUID(user.fief_user_id))}, {"$set": {"api_keys": user.api_keys}})
+    users_db.update_one({"_id":  Binary.from_uuid(user.fief_user_id)}, {"$set": {"api_keys": user.api_keys}})
 
     return new_api_key
 
