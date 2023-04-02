@@ -53,7 +53,7 @@ class User(BaseModel):
 def get_or_create_user(user_id: UUID) -> User:
     db = get_open_sensor_db()
     users_db = db["Users"]
-    user_doc = users_db.find_one({"_id": Binary.from_uuid(user_id)})
+    user_doc = users_db.find_one({"_id": Binary.from_uuid(UUID(user_id))})
 
     if user_doc:
         user = User(**user_doc)
@@ -61,7 +61,7 @@ def get_or_create_user(user_id: UUID) -> User:
         new_user = User(fief_user_id=UUID(user_id), api_keys=[])
         # Explicitly set the _id field in the dictionary before inserting the document
         new_user_dict = new_user.dict(by_alias=True, exclude_none=True)
-        new_user_dict["_id"] = Binary.from_uuid(user_id)
+        new_user_dict["_id"] = Binary.from_uuid(UUID(user_id))
         users_db.insert_one(new_user_dict)
         user = new_user
 
