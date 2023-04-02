@@ -45,8 +45,8 @@ class APIKey(BaseModel):
 
 
 class User(BaseModel):
-    fief_user_id: UUID = Field(..., alias="_id")
-    api_keys: List[APIKey] = []
+    fief_user_id: Optional[UUID] = Field(None, alias='_id')
+    api_keys: List[APIKey]
 
 
 def get_or_create_user(user_id: UUID) -> User:
@@ -58,7 +58,7 @@ def get_or_create_user(user_id: UUID) -> User:
     if user_doc:
         user = User(**user_doc)
     else:
-        new_user = User(fief_user_id=user_id, api_keys=[])
+        new_user = User(fief_user_id=UUID(user_id), api_keys=[])
         users_db.insert_one(new_user.dict(by_alias=True))
         user = new_user
 
