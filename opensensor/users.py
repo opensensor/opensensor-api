@@ -67,6 +67,7 @@ def get_or_create_user(user_id: UUID) -> User:
         new_user_dict["_id"] = binary_uuid
         users_db.insert_one(new_user_dict)
         user = new_user
+        user.fief_user_id = user_id
 
     return user
 
