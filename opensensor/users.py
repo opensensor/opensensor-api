@@ -59,7 +59,10 @@ def get_or_create_user(user_id: UUID) -> User:
         user = User(**user_doc)
     else:
         new_user = User(fief_user_id=UUID(user_id), api_keys=[])
-        users_db.insert_one(new_user.dict(by_alias=True))
+        # Explicitly set the _id field in the dictionary before inserting the document
+        new_user_dict = new_user.dict(by_alias=True, exclude_none=True)
+        new_user_dict["_id"] = user_id
+        users_db.insert_one(new_user_dict)
         user = new_user
 
     return user
