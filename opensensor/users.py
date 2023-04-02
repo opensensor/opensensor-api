@@ -4,6 +4,7 @@ import secrets
 from typing import List, Optional
 from uuid import UUID
 
+from bson import Binary
 from fastapi import HTTPException, Request, Response, status
 from fastapi.security import APIKeyCookie
 from fief_client import FiefAsync
@@ -53,7 +54,7 @@ def get_or_create_user(user_id: UUID) -> User:
     print(user_id)
     db = get_open_sensor_db()
     users_db = db["Users"]
-    user_doc = users_db.find_one({"_id": user_id})
+    user_doc = users_db.find_one({"_id": Binary.from_uuid(user_id_uuid)})
 
     if user_doc:
         user = User(**user_doc)
@@ -61,7 +62,7 @@ def get_or_create_user(user_id: UUID) -> User:
         new_user = User(fief_user_id=UUID(user_id), api_keys=[])
         # Explicitly set the _id field in the dictionary before inserting the document
         new_user_dict = new_user.dict(by_alias=True, exclude_none=True)
-        new_user_dict["_id"] = user_id
+        new_user_dict["_id"] = Binary.from_uuid(user_id_uuid)
         users_db.insert_one(new_user_dict)
         user = new_user
 
