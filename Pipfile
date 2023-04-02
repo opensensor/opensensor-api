@@ -13,7 +13,8 @@ simplejson = "*"
 install = "*"
 fastapi-pagination = {extras = ["pymongo"], version = "*"}
 fastapi-users = {extras = ["beanie"], version = "*"}
-fief-client = "*"
+fief-client = {extras = ['fastapi'], version = "*"}
+starlette-csrf = "*"
 
 [dev-packages]
 

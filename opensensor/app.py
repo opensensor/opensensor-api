@@ -4,6 +4,7 @@ from typing import Dict
 
 from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fief_client import FiefUserInfo
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -17,6 +18,12 @@ from opensensor.users import (
     get_redirect_uri,
 )
 
+origins = [
+    "https://graph.opensensor.io",
+    "https://opensensor.io",
+    "https://www.opensensor.io",
+]
+
 
 class JSONTZEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -28,6 +35,13 @@ class JSONTZEncoder(json.JSONEncoder):
 app = FastAPI()
 app.json_encoder = JSONTZEncoder
 app.add_middleware(ProxyHeadersMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")

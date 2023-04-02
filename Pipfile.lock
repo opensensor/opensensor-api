@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "0ea9c51cf44e3897ee90352cb3fcd4d7a11f520bc36c0b152d39d1bf976ebe53"
+            "sha256": "1bb81ff5f3c356679a6b574b697a53506649f630d288bc6768fad9a784a0640f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -258,6 +258,9 @@
             "version": "==1.1.4"
         },
         "fief-client": {
+            "extras": [
+                "fastapi"
+            ],
             "hashes": [
                 "sha256:c99eb0b2a67765fbd9b4d070994ccb78a93442ae4367a14a13ecf179439fab1b",
                 "sha256:f312b8c25c5e77be081897696a66f6ccffa2e4932fbb68548ff1cb820fb89b86"
@@ -312,6 +315,14 @@
             ],
             "index": "pypi",
             "version": "==8.12.0"
+        },
+        "itsdangerous": {
+            "hashes": [
+                "sha256:2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44",
+                "sha256:5dbbc68b317e5e42f327f9021763545dc3fc3bfe22e6deb96aaf1fc38874156a"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==2.1.2"
         },
         "jedi": {
             "hashes": [
@@ -704,6 +715,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==0.26.1"
+        },
+        "starlette-csrf": {
+            "hashes": [
+                "sha256:5f03b8c496840d612f1f7065aac7a209da084972f6e7844bcc5752c32ac54747",
+                "sha256:638d55a8f98e8e432b81fea56606b4afe9377d567a60e3c43a566bdd117660a0"
+            ],
+            "index": "pypi",
+            "version": "==2.0.0"
         },
         "toml": {
             "hashes": [
