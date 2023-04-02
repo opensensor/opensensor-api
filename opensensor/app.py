@@ -46,11 +46,7 @@ async def generate_api_key(
     device_id: str = Body(...),
     access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated()),
 ):
-    print(access_token_info)
-    # user_id = user_dict["sub"]
-    user_id = "TEST"
+    user_id = access_token_info["id"]
     user = get_or_create_user(user_id)
     new_api_key = add_api_key(user, description, device_id)
-    print(new_api_key)
-    # return {"message": f"New API key generated for user {user_id}", "api_key": new_api_key}
-    return {"access_token_info": access_token_info}
+    return {"message": f"New API key generated for user {user_id}", "api_key": new_api_key}
