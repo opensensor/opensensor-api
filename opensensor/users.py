@@ -53,7 +53,7 @@ class User(BaseModel):
 def get_or_create_user(user_id: UUID) -> User:
     db = get_open_sensor_db()
     users_db = db["Users"]
-    user_doc = users_db.find_one({"_id": Binary.from_uuid(UUID(user_id))})
+    user_doc = users_db.find_one({"_id": UUID(user_id)})
 
     if user_doc:
         user = User(**user_doc)
@@ -77,7 +77,7 @@ def add_api_key(user: User, description: str, device_id: str) -> APIKey:
         description=description,
     )
     user.api_keys.append(new_api_key)
-    users_db.update_one({"_id": user.fief_user_id}, {"$set": {"api_keys": user.api_keys}})
+    users_db.update_one({"_id":  Binary.from_uuid(UUID(user.fief_user_id))}, {"$set": {"api_keys": user.api_keys}})
 
     return new_api_key
 
