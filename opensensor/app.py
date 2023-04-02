@@ -1,15 +1,21 @@
 import datetime
 import json
+from typing import Dict
 
-from beanie import init_beanie
 from fastapi import Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fief_client import FiefUserInfo
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from opensensor.db import User, get_motor_mongo_connection
-from opensensor.users import SESSION_COOKIE_NAME, auth, fief, get_redirect_uri
+from opensensor.users import (
+    SESSION_COOKIE_NAME,
+    add_api_key,
+    auth,
+    fief,
+    get_or_create_user,
+    get_redirect_uri,
+)
 
 
 class JSONTZEncoder(json.JSONEncoder):
@@ -53,17 +59,11 @@ async def protected(
     return HTMLResponse(f"<h1>You are authenticated. Your user email is {user['email']}</h1>")
 
 
-@app.get("/authenticated-route")
-async def authenticated_route(user: User = Depends(auth.current_user())):
-    return {"message": f"Hello {user}"}
-
-
-@app.on_event("startup")
-async def on_startup():
-    db = get_motor_mongo_connection()
-    await init_beanie(
-        database=db,
-        document_models=[
-            User,
-        ],
-    )
+@app.post("/generate-api-key")
+async def generate_api_key(
+    description: str, device_id: str, user_dict: Dict = Depends(auth.current_user())
+):
+    user_id = user_dict["sub"]
+    user = get_or_create_user(user_id)
+    new_api_key = add_api_key(user, description, device_id)
+    return {"message": f"New API key generated for user {user_id}", "api_key": new_api_key}
