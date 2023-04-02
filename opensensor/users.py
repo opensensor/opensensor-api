@@ -1,7 +1,7 @@
 import base64
 import os
 import secrets
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import HTTPException, Request, Response, status
