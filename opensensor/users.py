@@ -1,9 +1,13 @@
+import base64
 import os
+from typing  import List
+import secrets
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.security import APIKeyCookie
 from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
+from pydantic import BaseModel
 
 
 def get_redirect_uri(request):
@@ -24,6 +28,22 @@ class CustomFiefAuth(FiefAuth):
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             headers={"Location": auth_url},
         )
+
+
+def generate_api_key(length: int = 32) -> str:
+    random_bytes = secrets.token_bytes(length)
+    return base64.urlsafe_b64encode(random_bytes).decode('utf-8')
+
+
+class APIKey(BaseModel):
+    key: str
+    device_id: str
+    description: str
+
+
+class User(BaseModel):
+    fief_user_id: str = Field(..., alias='_id')
+    api_keys: List[APIKey]
 
 
 fief = FiefAsync(
