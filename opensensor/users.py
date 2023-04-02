@@ -7,7 +7,7 @@ from uuid import UUID
 from bson import Binary
 from fastapi import HTTPException, Request, Response, status
 from fastapi.security import OAuth2AuthorizationCodeBearer
-from fief_client import FiefAccessTokenInfo, FiefAsync
+from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, Field
 
@@ -23,7 +23,8 @@ def get_redirect_uri(request):
 
 
 class CustomFiefAuth(FiefAuth):
-    """ For OAuth Redirect flows (cookie based auths--not token auths). """
+    """For OAuth Redirect flows (cookie based auths--not token auths)."""
+
     client: FiefAsync
 
     async def get_unauthorized_response(self, request: Request, response: Response):

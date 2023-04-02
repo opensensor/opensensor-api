@@ -1,12 +1,11 @@
 import datetime
 import json
-from typing import Dict
 
 from fastapi import Body, Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fief_client import FiefUserInfo
+from fastapi.responses import RedirectResponse
+from fief_client import FiefAccessTokenInfo
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from opensensor.users import (
@@ -68,11 +67,15 @@ async def auth_callback(request: Request, response: Response, code: str = Query(
 
 @app.post("/generate-api-key")
 async def generate_api_key(
-    description: str = Body(...), device_id: str = Body(...), access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated())
+    description: str = Body(...),
+    device_id: str = Body(...),
+    access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated()),
 ):
     print(access_token_info)
-    #user_id = user_dict["sub"]
-    #user = get_or_create_user(user_id)
-    #new_api_key = add_api_key(user, description, device_id)
-    #return {"message": f"New API key generated for user {user_id}", "api_key": new_api_key}
+    # user_id = user_dict["sub"]
+    user_id = "TEST"
+    user = get_or_create_user(user_id)
+    new_api_key = add_api_key(user, description, device_id)
+    print(new_api_key)
+    # return {"message": f"New API key generated for user {user_id}", "api_key": new_api_key}
     return {"access_token_info": access_token_info}
