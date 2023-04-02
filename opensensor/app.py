@@ -2,7 +2,7 @@ import datetime
 import json
 from typing import Dict
 
-from fastapi import Depends, FastAPI, Query, Request, Response
+from fastapi import Body, Depends, FastAPI, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -75,7 +75,7 @@ async def protected(
 
 @app.post("/generate-api-key")
 async def generate_api_key(
-    description: str, device_id: str, user_dict: Dict = Depends(auth.current_user())
+    description: str = Body(...), device_id: str = Body(...), user_dict: Dict = Depends(auth.current_user())
 ):
     user_id = user_dict["sub"]
     user = get_or_create_user(user_id)
