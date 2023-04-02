@@ -46,10 +46,11 @@ class APIKey(BaseModel):
 
 class User(BaseModel):
     fief_user_id: UUID = Field(..., alias="_id")
-    api_keys: List[APIKey]
+    api_keys: List[APIKey] = []
 
 
 def get_or_create_user(user_id: UUID) -> User:
+    print(user_id)
     db = get_open_sensor_db()
     users_db = db["Users"]
     user_doc = users_db.find_one({"_id": user_id})
