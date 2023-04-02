@@ -45,7 +45,7 @@ class APIKey(BaseModel):
 
 
 class User(BaseModel):
-    fief_user_id: Optional[UUID] = Field(None, alias='_id')
+    fief_user_id: Optional[UUID] = Field(None, alias="_id")
     api_keys: List[APIKey]
 
 
