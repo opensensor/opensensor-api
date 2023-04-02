@@ -1,13 +1,14 @@
 import base64
 import os
-from typing  import List, UUID
 import secrets
+from typing import List
+from uuid import UUID
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.security import APIKeyCookie
 from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from opensensor.db import get_open_sensor_db
 
@@ -34,7 +35,7 @@ class CustomFiefAuth(FiefAuth):
 
 def generate_api_key(length: int = 32) -> str:
     random_bytes = secrets.token_bytes(length)
-    return base64.urlsafe_b64encode(random_bytes).decode('utf-8')
+    return base64.urlsafe_b64encode(random_bytes).decode("utf-8")
 
 
 class APIKey(BaseModel):
@@ -44,7 +45,7 @@ class APIKey(BaseModel):
 
 
 class User(BaseModel):
-    fief_user_id: UUID = Field(..., alias='_id')
+    fief_user_id: UUID = Field(..., alias="_id")
     api_keys: List[APIKey]
 
 
@@ -71,10 +72,7 @@ def add_api_key(user: User, description: str, device_id: str) -> APIKey:
         device_id=device_id,
         description=description,
     )
-    users_db.update_one(
-        {"_id": user.fief_user_id},
-        {"$push": {"api_keys": new_api_key.dict()}}
-    )
+    users_db.update_one({"_id": user.fief_user_id}, {"$push": {"api_keys": new_api_key.dict()}})
 
     return new_api_key
 
