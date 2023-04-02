@@ -27,13 +27,13 @@ spec:
             httpGet:
               path: /health
               port: 8010
-            initialDelaySeconds: 45
+            initialDelaySeconds: 130
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
               port: 8010
-            initialDelaySeconds: 30
+            initialDelaySeconds: 120
             periodSeconds: 5
           resources:
             requests:
