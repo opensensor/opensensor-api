@@ -48,7 +48,7 @@ def _record_data_point_to_ts_collection(
     user: User = None,
 ):
     metadata = device_metadata.dict()
-    metadata["api_key"] = None
+    metadata.pop("api_key", None)
     if user:
         metadata["user_id"] = Binary.from_uuid(user.fief_user_id)
     if hasattr(data_point, "unit"):
