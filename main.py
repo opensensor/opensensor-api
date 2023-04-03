@@ -286,8 +286,8 @@ app.add_api_route(
 
 @app.post("/environment/")
 async def record_environment(
-        environment: Environment,
-        user: User = Depends(validate_device_metadata),
+    environment: Environment,
+    user: User = Depends(validate_device_metadata),
 ):
     db = get_open_sensor_db()
     if environment.temp:
