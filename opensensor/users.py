@@ -114,7 +114,7 @@ def add_api_key(
 
 def validate_device_metadata(device_metadata: DeviceMetadata) -> User:
     return validate_api_key(
-        device_metadata.api_key, device_metadata.device_id, device_metadata.device_name
+        device_metadata.api_key, device_metadata.device_id, device_metadata.name
     )
 
 
