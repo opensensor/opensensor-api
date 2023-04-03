@@ -48,6 +48,7 @@ class APIKey(BaseModel):
     description: str
     private_data: bool = False
 
+
 class User(BaseModel):
     fief_user_id: Optional[UUID] = Field(None, alias="_id")
     api_keys: List[APIKey]
@@ -73,21 +74,23 @@ def get_or_create_user(user_id: UUID) -> User:
     return user
 
 
-def add_api_key(user: User, device_id: str, device_name: str, description: str, private_data: boolean) -> APIKey:
+def add_api_key(
+    user: User, device_id: str, device_name: str, description: str, private_data: bool
+) -> APIKey:
     db = get_open_sensor_db()
     users_db = db["Users"]
 
     # Check if the device_id and device_name combination is already associated with an API key for any other user
-    existing_key = users_db.find_one({
-        "_id": {"$ne": Binary.from_uuid(user.fief_user_id)},
-        "$and": [
-            {"api_keys.device_id": device_id},
-            {"api_keys.device_name": device_name}
-        ]
-    })
+    existing_key = users_db.find_one(
+        {
+            "_id": {"$ne": Binary.from_uuid(user.fief_user_id)},
+            "$and": [{"api_keys.device_id": device_id}, {"api_keys.device_name": device_name}],
+        }
+    )
     if existing_key:
-        raise ValueError(f"Device ID {device_id} with name {device_name} is already associated to another User.")
-
+        raise ValueError(
+            f"Device ID {device_id} with name {device_name} is already associated to another User."
+        )
 
     new_api_key = APIKey(
         key=generate_api_key(),
@@ -131,7 +134,9 @@ def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
                 matching_api_key = api_key_obj
                 break
             else:
-                raise HTTPException(status_code=403, detail="Device ID and name do not match the provided API key")
+                raise HTTPException(
+                    status_code=403, detail="Device ID and name do not match the provided API key"
+                )
 
     if matching_api_key is None:
         raise HTTPException(status_code=403, detail="API key not found in the user's API keys")

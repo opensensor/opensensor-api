@@ -55,5 +55,6 @@ async def generate_api_key(
         device_id=device_id,
         device_name=device_name,
         description=description,
-        private_data=private_data)
+        private_data=private_data,
+    )
     return {"api_key": new_api_key, "message": f"New API key generated for user {user_id}"}

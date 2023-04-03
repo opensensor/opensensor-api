@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Generic, Type, TypeVar
 
-from fastapi import Path, Query, Response, status
+from fastapi import Depends, Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
@@ -21,7 +21,7 @@ from opensensor.collections import (
     Temperature,
 )
 from opensensor.db import get_open_sensor_db
-from opensensor.users import User, validate_api_key
+from opensensor.users import User, validate_device_metadata
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -40,11 +40,15 @@ class Page(BasePage[T], Generic[T]):
 
 
 def _record_data_point_to_ts_collection(
-    collection, ts_column_name: str, device_metadata: DeviceMetadata, data_point, user: User=None,
+    collection,
+    ts_column_name: str,
+    device_metadata: DeviceMetadata,
+    data_point,
+    user: User = None,
 ):
     metadata = device_metadata.dict()
     metadata.api_key = None
-    metadata['user_id'] = user.fief_user_id
+    metadata["user_id"] = user.fief_user_id
     if hasattr(data_point, "unit"):
         metadata["unit"] = data_point.unit
     data = {
@@ -99,8 +103,10 @@ async def record_moisture_readings(device_metadata: DeviceMetadata, moisture: Mo
 
 @app.post("/pH/", response_model=PH)
 async def record_ph(
-        device_metadata: DeviceMetadata, ph: PH,
-        user: User = Depends(lambda: validate_api_key(device_metadata.api_key, device_metadata.device_id, device_metadata.device_name))):
+    device_metadata: DeviceMetadata,
+    ph: PH,
+    user: User = Depends(validate_device_metadata),
+):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, ph, user)
     return Response(status_code=status.HTTP_201_CREATED)
