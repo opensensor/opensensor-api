@@ -47,7 +47,7 @@ def _record_data_point_to_ts_collection(
     user: User = None,
 ):
     metadata = device_metadata.dict()
-    metadata.api_key = None
+    metadata["api_key"] = None
     metadata["user_id"] = user.fief_user_id
     if hasattr(data_point, "unit"):
         metadata["unit"] = data_point.unit
