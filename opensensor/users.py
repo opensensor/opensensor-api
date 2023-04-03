@@ -133,6 +133,7 @@ def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
     user_doc = users_db.find_one({"api_keys.key": api_key})
 
     if user_doc is None:
+        print("Invalid API key")
         raise HTTPException(status_code=403, detail="Invalid API key")
 
     user = User(**user_doc)
@@ -145,11 +146,13 @@ def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
                 matching_api_key = api_key_obj
                 break
             else:
+                print("Device ID and name do not match the provided API key")
                 raise HTTPException(
                     status_code=403, detail="Device ID and name do not match the provided API key"
                 )
 
     if matching_api_key is None:
+        print("API key not found in the user's API keys")
         raise HTTPException(status_code=403, detail="API key not found in the user's API keys")
 
     return user
