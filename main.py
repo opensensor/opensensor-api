@@ -21,7 +21,7 @@ from opensensor.collections import (
     Temperature,
 )
 from opensensor.db import get_open_sensor_db
-from opensensor.users import User, validate_environment
+from opensensor.users import User, validate_device_metadata, validate_environment
 
 T = TypeVar("T", bound=BaseModel)
 
