@@ -292,31 +292,31 @@ async def record_environment(
     db = get_open_sensor_db()
     if environment.temp:
         _record_data_point_to_ts_collection(
-            db.Temperature, "temp", environment.device_metadata, environment.temp
+            db.Temperature, "temp", environment.device_metadata, environment.temp, user
         )
     if environment.rh:
         _record_data_point_to_ts_collection(
-            db.Humidity, "rh", environment.device_metadata, environment.rh
+            db.Humidity, "rh", environment.device_metadata, environment.rh, user
         )
     if environment.pressure:
         _record_data_point_to_ts_collection(
-            db.Pressure, "pressure", environment.device_metadata, environment.pressure
+            db.Pressure, "pressure", environment.device_metadata, environment.pressure, user
         )
     if environment.lux:
         _record_data_point_to_ts_collection(
-            db.Lux, "percent", environment.device_metadata, environment.lux
+            db.Lux, "percent", environment.device_metadata, environment.lux, user
         )
     if environment.co2:
         _record_data_point_to_ts_collection(
-            db.CO2, "ppm", environment.device_metadata, environment.co2
+            db.CO2, "ppm", environment.device_metadata, environment.co2, user
         )
     if environment.moisture:
         _record_data_point_to_ts_collection(
-            db.Moisture, "readings", environment.device_metadata, environment.moisture
+            db.Moisture, "readings", environment.device_metadata, environment.moisture, user
         )
     if environment.pH:
         _record_data_point_to_ts_collection(
-            db.pH, "pH", environment.device_metadata, environment.pH
+            db.pH, "pH", environment.device_metadata, environment.pH, user
         )
 
     return Response(status_code=status.HTTP_201_CREATED)
