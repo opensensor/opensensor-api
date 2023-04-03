@@ -13,6 +13,7 @@ class TimestampModel(BaseModel):
 class DeviceMetadata(BaseModel):
     device_id: str
     name: str | None = None
+    api_key: str | None = None
 
 
 class Temperature(TimestampModel):

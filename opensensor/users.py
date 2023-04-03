@@ -108,6 +108,37 @@ def add_api_key(user: User, device_id: str, device_name: str, description: str, 
     return new_api_key
 
 
+def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required")
+
+    db = get_open_sensor_db()
+    users_db = db["Users"]
+
+    # Find the user with the provided API key
+    user_doc = users_db.find_one({"api_keys.key": api_key})
+
+    if user_doc is None:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+    user = User(**user_doc)
+
+    # Find the API key with the matching device_id and device_name
+    matching_api_key = None
+    for api_key_obj in user.api_keys:
+        if api_key_obj.key == api_key:
+            if api_key_obj.device_id == device_id and api_key_obj.device_name == device_name:
+                matching_api_key = api_key_obj
+                break
+            else:
+                raise HTTPException(status_code=403, detail="Device ID and name do not match the provided API key")
+
+    if matching_api_key is None:
+        raise HTTPException(status_code=403, detail="API key not found in the user's API keys")
+
+    return user
+
+
 fief = FiefAsync(
     os.environ.get("FIEF_HOST"),
     os.environ.get("FIEF_CLIENT_ID"),
