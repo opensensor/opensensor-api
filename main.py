@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Generic, Type, TypeVar
 
+from bson import Binary
 from fastapi import Depends, Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
@@ -49,7 +50,7 @@ def _record_data_point_to_ts_collection(
     metadata = device_metadata.dict()
     metadata["api_key"] = None
     if user:
-        metadata["user_id"] = user.fief_user_id
+        metadata["user_id"] = Binary.from_uuid(user.fief_user_id)
     if hasattr(data_point, "unit"):
         metadata["unit"] = data_point.unit
     data = {
