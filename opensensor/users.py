@@ -11,7 +11,7 @@ from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, Field
 
-from opensensor.collections import DeviceMetadata
+from opensensor.collections import DeviceMetadata, Environment
 from opensensor.db import get_open_sensor_db
 
 
@@ -110,6 +110,10 @@ def add_api_key(
     )
 
     return new_api_key
+
+
+def validate_environment(environment: Environment) -> User:
+    return validate_device_metadata(environment.device_metadata)
 
 
 def validate_device_metadata(device_metadata: DeviceMetadata) -> User:

@@ -21,7 +21,7 @@ from opensensor.collections import (
     Temperature,
 )
 from opensensor.db import get_open_sensor_db
-from opensensor.users import User, validate_device_metadata
+from opensensor.users import User, validate_environment
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -286,8 +286,7 @@ app.add_api_route(
 
 @app.post("/environment/")
 async def record_environment(
-    environment: Environment,
-    user: User = Depends(validate_device_metadata),
+    environment: Environment = Depends(validate_environment),
 ):
     db = get_open_sensor_db()
     if environment.temp:
