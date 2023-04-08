@@ -272,7 +272,7 @@ def sample_and_paginate_collection(
 
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
-        user: Optional[FiefUserInfo] = Depends(auth.current_user()),
+        user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
         device_id: str = Path(
             title="The ID of the device chain for which to retrieve historical data."
         ),
