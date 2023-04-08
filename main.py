@@ -68,42 +68,66 @@ def _record_data_point_to_ts_collection(
 
 
 @app.post("/rh/", response_model=Humidity)
-async def record_humidity(device_metadata: DeviceMetadata, rh: Humidity):
+async def record_humidity(
+    device_metadata: DeviceMetadata,
+    rh: Humidity,
+    user: User = Depends(validate_device_metadata),
+):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Humidity, "rh", device_metadata, rh)
     return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/temp/", response_model=Temperature)
-async def record_temperature(device_metadata: DeviceMetadata, temp: Temperature):
+async def record_temperature(
+    device_metadata: DeviceMetadata,
+    temp: Temperature,
+    user: User = Depends(validate_device_metadata),
+):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Temperature, "temp", device_metadata, temp)
     return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/pressure/", response_model=Pressure)
-async def record_pressure(device_metadata: DeviceMetadata, pressure: Pressure):
+async def record_pressure(
+    device_metadata: DeviceMetadata,
+    pressure: Pressure,
+    user: User = Depends(validate_device_metadata),
+):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Pressure, "pressure", device_metadata, pressure)
     return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/lux/", response_model=Lux)
-async def record_lux(device_metadata: DeviceMetadata, lux: Lux):
+async def record_lux(
+    device_metadata: DeviceMetadata,
+    lux: Lux,
+    user: User = Depends(validate_device_metadata),
+):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Lux, "percent", device_metadata, lux)
     return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/CO2/", response_model=CO2)
-async def record_co2(device_metadata: DeviceMetadata, co2: CO2):
+async def record_co2(
+    device_metadata: DeviceMetadata,
+    co2: CO2,
+    user: User = Depends(validate_device_metadata),
+):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.CO2, "ppm", device_metadata, co2)
     return Response(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/moisture/", response_model=Moisture)
-async def record_moisture_readings(device_metadata: DeviceMetadata, moisture: Moisture):
+async def record_moisture_readings(
+    device_metadata: DeviceMetadata,
+    moisture: Moisture,
+    user: User = Depends(validate_device_metadata),
+):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Moisture, "readings", device_metadata, moisture)
     return Response(status_code=status.HTTP_201_CREATED)
