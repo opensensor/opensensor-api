@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Generic, Type, TypeVar
+from typing import Generic, List, Type, TypeVar
 
 from bson import Binary
 from fastapi import Depends, Path, Query, Response, status
@@ -22,8 +22,13 @@ from opensensor.collections import (
     Temperature,
 )
 from opensensor.db import get_open_sensor_db
-from opensensor.users import User, get_api_keys_by_device_id, filter_api_keys_by_device_id, \
-    validate_device_metadata, validate_environment
+from opensensor.users import (
+    User,
+    filter_api_keys_by_device_id,
+    get_api_keys_by_device_id,
+    validate_device_metadata,
+    validate_environment,
+)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -148,7 +153,9 @@ def get_uniform_sample_pipeline(
         {
             "$match": {
                 "timestamp": {"$gte": start_date, "$lte": end_date},
-                "metadata.device_id": {"$in": device_ids},  # Use $in operator for matching any device_id in the list
+                "metadata.device_id": {
+                    "$in": device_ids
+                },  # Use $in operator for matching any device_id in the list
                 "metadata.device_name": device_name,
             }
         },
