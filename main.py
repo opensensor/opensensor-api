@@ -22,7 +22,8 @@ from opensensor.collections import (
     Temperature,
 )
 from opensensor.db import get_open_sensor_db
-from opensensor.users import User, validate_device_metadata, validate_environment
+from opensensor.users import User, get_api_keys_by_device_id, filter_api_keys_by_device_id, \
+    validate_device_metadata, validate_environment
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -130,7 +131,8 @@ def _get_project_projection(response_model: Type[T]):
 
 def get_uniform_sample_pipeline(
     response_model: Type[T],
-    device_id: str,
+    device_ids: List[str],  # Update the type of the device_id parameter to List[str]
+    device_name: str,
     start_date: datetime,
     end_date: datetime,
     resolution: int,
@@ -146,7 +148,8 @@ def get_uniform_sample_pipeline(
         {
             "$match": {
                 "timestamp": {"$gte": start_date, "$lte": end_date},
-                "metadata.device_id": device_id,
+                "metadata.device_id": {"$in": device_ids},  # Use $in operator for matching any device_id in the list
+                "metadata.device_name": device_name,
             }
         },
         {
@@ -207,9 +210,11 @@ def sample_and_paginate_collection(
     size: int,
     unit: str,
 ):
+    api_keys = get_api_keys_by_device_id(device_id)
+    device_ids, target_device_name = filter_api_keys_by_device_id(api_keys, device_id)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
-        response_model, device_id, start_date, end_date, resolution
+        response_model, device_ids, target_device_name, start_date, end_date, resolution
     )
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
@@ -233,7 +238,7 @@ def sample_and_paginate_collection(
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
         device_id: str = Path(
-            title="The ID of the device about which to retrieve historical data."
+            title="The ID of the device chain for which to retrieve historical data."
         ),
         start_date: datetime | None = None,
         end_date: datetime | None = None,
