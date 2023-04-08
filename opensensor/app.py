@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fief_client import FiefAccessTokenInfo
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from opensensor.users import add_api_key, auth, get_or_create_user
+from opensensor.users import add_api_key, auth, get_or_create_user, get_public_devices
 
 origins = [
     "https://graph.opensensor.io",
@@ -58,3 +58,9 @@ async def generate_api_key(
         private_data=private_data,
     )
     return {"api_key": new_api_key, "message": f"New API key generated for user {user_id}"}
+
+
+@app.get("/public-devices")
+async def generate_api_key():
+    public_device_data = get_public_devices()
+    return public_device_data
