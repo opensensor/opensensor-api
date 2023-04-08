@@ -5,15 +5,31 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 from bson import Binary
-from fastapi import HTTPException, Request, Response, status
-# from fastapi.security import OAuth2AuthorizationCodeBearer
+from fastapi import Depends, HTTPException, Request, Response, status
+from fastapi.security import OAuth2AuthorizationCodeBearer
 from fastapi.security import APIKeyCookie
 from fief_client import FiefAsync
-from fief_client.integrations.fastapi import FiefAuth
+from fief_client.integrations.fastapi import FiefAuth, FiefUserInfo
 from pydantic import BaseModel, Field
 
 from opensensor.collections import DeviceMetadata, Environment
 from opensensor.db import get_open_sensor_db
+
+
+fief = FiefAsync(
+    os.environ.get("FIEF_HOST"),
+    os.environ.get("FIEF_CLIENT_ID"),
+    os.environ.get("FIEF_CLIENT_SECRET"),
+)
+oauth2_scheme = OAuth2AuthorizationCodeBearer(
+    f"{os.environ.get('FIEF_HOST')}/authorize",
+    f"{os.environ.get('FIEF_HOST')}/api/token",
+    scopes={"openid": "openid", "offline_access": "offline_access"},
+    auto_error=False,
+)
+oauth2_auth = FiefAuth(fief, oauth2_scheme)
+SESSION_COOKIE_NAME = "grafana_session"
+scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
 
 
 def get_redirect_uri(request):
@@ -45,6 +61,12 @@ class CustomFiefStaticAuth(FiefAuth):
 
     async def get_unauthorized_response(self, request: Request, response: Response):
         return {"access_token": None, "id": None, "email": None}
+
+    async def current_user(self, token: Optional[str] = Depends(oauth2_scheme)) -> Optional[FiefUserInfo]:
+        if not token:
+            return FiefUserInfo(access_token=None, id=None, email=None)  # Return an anonymous user
+
+        return super().current_user(token)
 
 
 def generate_api_key(length: int = 32) -> str:
@@ -225,21 +247,4 @@ def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
     return user
 
 
-fief = FiefAsync(
-    os.environ.get("FIEF_HOST"),
-    os.environ.get("FIEF_CLIENT_ID"),
-    os.environ.get("FIEF_CLIENT_SECRET"),
-)
-
-SESSION_COOKIE_NAME = "grafana_session"
-scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
 auth = CustomFiefStaticAuth(fief, scheme)
-
-# The
-# scheme = OAuth2AuthorizationCodeBearer(
-#     f"{os.environ.get('FIEF_HOST')}/authorize",
-#     f"{os.environ.get('FIEF_HOST')}/api/token",
-#     scopes={"openid": "openid", "offline_access": "offline_access"},
-#     auto_error=False,
-# )
-# auth = FiefAuth(fief, scheme)
