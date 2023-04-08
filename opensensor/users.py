@@ -64,9 +64,9 @@ class CustomFiefStaticAuth(FiefAuth):
 
     async def current_user(self, token: Optional[str] = Depends(oauth2_scheme)) -> Optional[FiefUserInfo]:
         if not token:
-            return FiefUserInfo(access_token=None, id=None, email=None)  # Return an anonymous user
+            return await FiefUserInfo(access_token=None, id=None, email=None)  # Return an anonymous user
 
-        return super().current_user(token)
+        return await super().current_user(token)
 
 
 def generate_api_key(length: int = 32) -> str:
