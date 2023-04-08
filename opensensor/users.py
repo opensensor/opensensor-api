@@ -62,12 +62,6 @@ class CustomFiefStaticAuth(FiefAuth):
     async def get_unauthorized_response(self, request: Request, response: Response):
         return {"access_token": None, "id": None, "email": None}
 
-    async def current_user(self, token: Optional[str] = Depends(oauth2_scheme)) -> Optional[FiefUserInfo]:
-        if not token:
-            return await FiefUserInfo(access_token=None, id=None, email=None)  # Return an anonymous user
-
-        return await super().current_user(token)
-
 
 def generate_api_key(length: int = 32) -> str:
     random_bytes = secrets.token_bytes(length)
