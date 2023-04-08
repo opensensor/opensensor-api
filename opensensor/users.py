@@ -147,7 +147,8 @@ def get_api_keys_by_device_id(device_id: str) -> List[APIKey]:
     else:
         api_keys = []
 
-    return api_keys
+    api_key_objects = [APIKey(**api_key) for api_key in api_keys]
+    return api_key_objects
 
 
 def validate_environment(environment: Environment) -> User:

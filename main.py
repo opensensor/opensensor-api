@@ -156,7 +156,7 @@ def get_uniform_sample_pipeline(
                 "metadata.device_id": {
                     "$in": device_ids
                 },  # Use $in operator for matching any device_id in the list
-                "metadata.device_name": device_name,
+                "metadata.name": device_name,
             }
         },
         {
@@ -218,7 +218,9 @@ def sample_and_paginate_collection(
     unit: str,
 ):
     api_keys = get_api_keys_by_device_id(device_id)
+    print(api_keys)
     device_ids, target_device_name = filter_api_keys_by_device_id(api_keys, device_id)
+    print(device_ids, target_device_name)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
         response_model, device_ids, target_device_name, start_date, end_date, resolution
