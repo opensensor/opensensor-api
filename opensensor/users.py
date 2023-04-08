@@ -5,16 +5,14 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 from bson import Binary
-from fastapi import Depends, HTTPException, Request, Response, status
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from fastapi.security import APIKeyCookie
+from fastapi import HTTPException, Request, Response, status
+from fastapi.security import APIKeyCookie, OAuth2AuthorizationCodeBearer
 from fief_client import FiefAsync
-from fief_client.integrations.fastapi import FiefAuth, FiefUserInfo
+from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, Field
 
 from opensensor.collections import DeviceMetadata, Environment
 from opensensor.db import get_open_sensor_db
-
 
 fief = FiefAsync(
     os.environ.get("FIEF_HOST"),
