@@ -244,9 +244,7 @@ def sample_and_paginate_collection(
     unit: str,
 ):
     api_keys = get_api_keys_by_device_id(device_id)
-    print(api_keys)
     device_ids, target_device_name = filter_api_keys_by_device_id(api_keys, device_id)
-    print(device_ids, target_device_name)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
         response_model, device_ids, target_device_name, start_date, end_date, resolution
@@ -285,6 +283,8 @@ def create_historical_data_route(entity: Type[T]):
     ) -> Page[T]:
         if user:
             print(user)
+        else:
+            print("no user")
         return sample_and_paginate_collection(
             entity,
             device_id=device_id,
