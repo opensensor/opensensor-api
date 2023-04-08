@@ -142,14 +142,16 @@ def get_public_devices() -> List[Dict[str, str]]:
     collection = db["Users"]
 
     # Query for all users and their API keys
-    users = collection.find({}, {'_id': 0, 'api_keys': 1})
+    users = collection.find({}, {"_id": 0, "api_keys": 1})
 
     # Extract public device_ids and device_names from API keys
     public_devices = []
     for user in users:
-        for api_key in user['api_keys']:
-            if not api_key.private_data:
-                public_devices.append({"device_id": api_key.device_id, "device_name": api_key.device_name})
+        for api_key in user["api_keys"]:
+            if not api_key.get("private_data", False):
+                public_devices.append(
+                    {"device_id": api_key["device_id"], "device_name": api_key["device_name"]}
+                )
 
     return public_devices
 

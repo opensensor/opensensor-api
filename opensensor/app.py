@@ -61,6 +61,6 @@ async def generate_api_key(
 
 
 @app.get("/public-devices")
-async def generate_api_key():
+async def public_device_listing():
     public_device_data = get_public_devices()
     return public_device_data
