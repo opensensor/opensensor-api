@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Generic, List, Type, TypeVar
+from typing import Generic, List, Optional, Type, TypeVar
 
 from bson import Binary
 from fastapi import Depends, Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
+from fief_client import FiefUserInfo
 from pydantic import BaseModel
 
 from opensensor.app import app
@@ -23,6 +24,7 @@ from opensensor.collections import (
 )
 from opensensor.db import get_open_sensor_db
 from opensensor.users import (
+    auth,
     User,
     filter_api_keys_by_device_id,
     get_api_keys_by_device_id,
@@ -270,6 +272,7 @@ def sample_and_paginate_collection(
 
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
+        user: Optional[FiefUserInfo] = Depends(auth.current_user()),
         device_id: str = Path(
             title="The ID of the device chain for which to retrieve historical data."
         ),

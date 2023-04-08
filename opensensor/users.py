@@ -6,7 +6,8 @@ from uuid import UUID
 
 from bson import Binary
 from fastapi import HTTPException, Request, Response, status
-from fastapi.security import OAuth2AuthorizationCodeBearer
+# from fastapi.security import OAuth2AuthorizationCodeBearer
+from fastapi.security import APIKeyCookie
 from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, Field
@@ -221,11 +222,15 @@ fief = FiefAsync(
     os.environ.get("FIEF_CLIENT_SECRET"),
 )
 
-scheme = OAuth2AuthorizationCodeBearer(
-    f"{os.environ.get('FIEF_HOST')}/authorize",
-    f"{os.environ.get('FIEF_HOST')}/api/token",
-    scopes={"openid": "openid", "offline_access": "offline_access"},
-    auto_error=False,
-)
+SESSION_COOKIE_NAME = "grafana_session"
+scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
+auth = CustomFiefAuth(fief, scheme)
 
-auth = FiefAuth(fief, scheme)
+# The
+# scheme = OAuth2AuthorizationCodeBearer(
+#     f"{os.environ.get('FIEF_HOST')}/authorize",
+#     f"{os.environ.get('FIEF_HOST')}/api/token",
+#     scopes={"openid": "openid", "offline_access": "offline_access"},
+#     auto_error=False,
+# )
+# auth = FiefAuth(fief, scheme)
