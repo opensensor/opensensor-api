@@ -24,7 +24,7 @@ def get_redirect_uri(request):
     return redirect_uri
 
 
-class CustomFiefAuth(FiefAuth):
+class CustomFiefOAuth2(FiefAuth):
     """For OAuth Redirect flows (cookie based auths--not token auths)."""
 
     client: FiefAsync
@@ -36,6 +36,15 @@ class CustomFiefAuth(FiefAuth):
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             headers={"Location": auth_url},
         )
+
+
+class CustomFiefStaticAuth(FiefAuth):
+    """For OAuth Redirect flows (cookie based auths--not token auths)."""
+
+    client: FiefAsync
+
+    async def get_unauthorized_response(self, request: Request, response: Response):
+        return {}
 
 
 def generate_api_key(length: int = 32) -> str:
@@ -224,7 +233,7 @@ fief = FiefAsync(
 
 SESSION_COOKIE_NAME = "grafana_session"
 scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
-auth = CustomFiefAuth(fief, scheme)
+auth = CustomFiefStaticAuth(fief, scheme)
 
 # The
 # scheme = OAuth2AuthorizationCodeBearer(
