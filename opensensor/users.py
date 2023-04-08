@@ -44,7 +44,7 @@ class CustomFiefStaticAuth(FiefAuth):
     client: FiefAsync
 
     async def get_unauthorized_response(self, request: Request, response: Response):
-        return {}
+        return {"access_token": None, "id": None, "email": None}
 
 
 def generate_api_key(length: int = 32) -> str:
