@@ -283,6 +283,8 @@ def create_historical_data_route(entity: Type[T]):
         size: int = Query(50, ge=1, le=1000, description="Page size"),
         unit: str | None = None,
     ) -> Page[T]:
+        if user:
+            print(user)
         return sample_and_paginate_collection(
             entity,
             device_id=device_id,
