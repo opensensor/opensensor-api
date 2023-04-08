@@ -75,6 +75,31 @@ def get_or_create_user(user_id: UUID) -> User:
     return user
 
 
+def filter_api_keys_by_device_name(api_keys: List[APIKey], target_device_name: str) -> List[str]:
+    filtered_device_ids = [
+        api_key.device_id for api_key in api_keys if api_key.device_name == target_device_name
+    ]
+    return filtered_device_ids
+
+
+def filter_api_keys_by_device_id(api_keys: List[APIKey], target_device_id: str) -> List[str]:
+    # Find the first APIKey with the given device_id and get its device_name
+    target_device_name = None
+    for api_key in api_keys:
+        if api_key.device_id == target_device_id:
+            target_device_name = api_key.device_name
+            break
+
+    if target_device_name is None:
+        return [], None
+
+    # Filter the API keys by the device_name
+    filtered_device_ids = [
+        api_key.device_id for api_key in api_keys if api_key.device_name == target_device_name
+    ]
+    return filtered_device_ids, target_device_name
+
+
 def add_api_key(
     user: User, device_id: str, device_name: str, description: str, private_data: bool
 ) -> APIKey:
@@ -110,6 +135,20 @@ def add_api_key(
     )
 
     return new_api_key
+
+
+def get_api_keys_by_device_id(device_id: str) -> List[APIKey]:
+    db = get_open_sensor_db()
+    users_db = db["Users"]
+    user = users_db.find_one({"api_keys": {"$elemMatch": {"device_id": device_id}}})
+
+    if user:
+        api_keys = user["api_keys"]
+    else:
+        api_keys = []
+
+    api_key_objects = [APIKey(**api_key) for api_key in api_keys]
+    return api_key_objects
 
 
 def validate_environment(environment: Environment) -> User:
