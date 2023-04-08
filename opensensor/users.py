@@ -1,7 +1,7 @@
 import base64
 import os
 import secrets
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from bson import Binary
@@ -82,7 +82,7 @@ def filter_api_keys_by_device_name(api_keys: List[APIKey], target_device_name: s
     return filtered_device_ids
 
 
-def filter_api_keys_by_device_id(api_keys: List[APIKey], target_device_id: str) -> List[str]:
+def filter_api_keys_by_device_id(api_keys: List[APIKey], target_device_id: str) -> (List[str], str):
     # Find the first APIKey with the given device_id and get its device_name
     target_device_name = None
     for api_key in api_keys:
@@ -135,6 +135,25 @@ def add_api_key(
     )
 
     return new_api_key
+
+
+def get_public_devices() -> List[Dict[str, str]]:
+    db = get_open_sensor_db()
+    collection = db["Users"]
+
+    # Query for all users and their API keys
+    users = collection.find({}, {"_id": 0, "api_keys": 1})
+
+    # Extract public device_ids and device_names from API keys
+    public_devices = []
+    for user in users:
+        for api_key in user["api_keys"]:
+            if not api_key.get("private_data", False):
+                public_devices.append(
+                    {"device_id": api_key["device_id"], "device_name": api_key["device_name"]}
+                )
+
+    return public_devices
 
 
 def get_api_keys_by_device_id(device_id: str) -> List[APIKey]:
