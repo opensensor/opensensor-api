@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Generic, List, Optional, Type, TypeVar
 
 from bson import Binary
-from fastapi import Depends, Path, Query, Request, Response, status
+from fastapi import Depends, HTTPException, Path, Query, Request, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
@@ -26,7 +26,8 @@ from opensensor.db import get_open_sensor_db
 from opensensor.users import (
     User,
     auth,
-    filter_api_keys_by_device_id,
+    reduce_api_keys_to_device_ids,
+    device_id_is_allowed_for_user,
     get_api_keys_by_device_id,
     validate_device_metadata,
     validate_environment,
@@ -244,7 +245,7 @@ def sample_and_paginate_collection(
     unit: str,
 ):
     api_keys = get_api_keys_by_device_id(device_id)
-    device_ids, target_device_name = filter_api_keys_by_device_id(api_keys, device_id)
+    device_ids, target_device_name = reduce_api_keys_to_device_ids(api_keys, device_id)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
         response_model, device_ids, target_device_name, start_date, end_date, resolution
@@ -282,10 +283,11 @@ def create_historical_data_route(entity: Type[T]):
         size: int = Query(50, ge=1, le=1000, description="Page size"),
         unit: str | None = None,
     ) -> Page[T]:
-        if user:
-            print(user)
-        else:
-            print("no user")
+        if not device_id_is_allowed_for_user(device_id, user=user):
+            raise HTTPException(
+                status_code=403,
+                detail=f"User {user.username} is not authorized to access device {device_id}",
+            )
 
         # Print or inspect the request data as needed
         print(request)

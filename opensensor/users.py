@@ -117,6 +117,11 @@ def filter_api_keys_by_device_id(api_keys: List[APIKey], target_device_id: str) 
     if target_device_name is None:
         return [], None
 
+    return [api_key for api_key in api_keys if api_key.device_name == target_device_name], target_device_name
+
+
+def reduce_api_keys_to_device_ids(api_keys: List[APIKey], target_device_id: str) -> (List[str], str):
+    api_keys, target_device_name = filter_api_keys_by_device_id(api_keys, target_device_id)
     # Filter the API keys by the device_name
     filtered_device_ids = [
         api_key.device_id for api_key in api_keys if api_key.device_name == target_device_name
@@ -192,6 +197,22 @@ def get_api_keys_by_device_id(device_id: str) -> List[APIKey]:
 
     api_key_objects = [APIKey(**api_key) for api_key in api_keys]
     return api_key_objects
+
+
+def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
+    api_keys = get_api_keys_by_device_id(device_id)
+    api_keys, device_name = filter_api_keys_by_device_id(api_keys, device_id)
+    if len(api_keys) == 0:
+        return True
+
+    for api_key in api_keys:
+        if api_key.private_data:
+            if user is None:
+                return False
+            if user['sub'] != api_key.user_id:
+                return False
+
+    return True
 
 
 def validate_environment(environment: Environment) -> User:
