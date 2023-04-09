@@ -194,6 +194,30 @@ def get_public_devices() -> List[Dict[str, str]]:
     return public_devices
 
 
+def get_user_devices(user_id: UUID) -> List[Dict[str, str]]:
+    db = get_open_sensor_db()
+    collection = db["Users"]
+
+    # Query for the user and their API keys
+    user = collection.find_one(
+        {"_id": Binary.from_uuid(user_id)}, {"_id": 0, "api_keys": 1}
+    )
+
+    # Extract private device_ids and device_names from API keys
+    user_devices = []
+    for api_key in user["api_keys"]:
+        if api_key.get("private_data", False):
+            user_devices.append(
+                {
+                    "device_id": api_key["device_id"],
+                    "device_name": api_key["device_name"],
+                    "combined_name": f"{api_key['device_id']}|{api_key['device_name']}",
+                }
+            )
+
+    return user_devices
+
+
 def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
     device_id, device_name = get_device_parts(device_id)
     db = get_open_sensor_db()

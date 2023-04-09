@@ -1,13 +1,15 @@
 import datetime
 import json
+from typing import Optional
+from uuid import UUID
 
 from fastapi import Body, Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
-from fief_client import FiefAccessTokenInfo
+from fief_client import FiefAccessTokenInfo, FiefUserInfo
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from opensensor.users import add_api_key, auth, get_or_create_user, get_public_devices
+from opensensor.users import add_api_key, auth, get_or_create_user, get_public_devices, get_user_devices
 
 origins = [
     "https://graph.opensensor.io",
@@ -60,7 +62,9 @@ async def generate_api_key(
     return {"api_key": new_api_key, "message": f"New API key generated for user {user_id}"}
 
 
-@app.get("/public-devices")
-async def public_device_listing():
+@app.get("/device-listing")
+async def device_listing(user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True))):
     public_device_data = get_public_devices()
+    if user:
+        public_device_data += get_user_devices(user_id=UUID(user["sub"]))
     return public_device_data
