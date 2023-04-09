@@ -283,10 +283,11 @@ def create_historical_data_route(entity: Type[T]):
         size: int = Query(50, ge=1, le=1000, description="Page size"),
         unit: str | None = None,
     ) -> Page[T]:
+        print(user)
         if not device_id_is_allowed_for_user(device_id, user=user):
             raise HTTPException(
                 status_code=403,
-                detail=f"User {user.username} is not authorized to access device {device_id}",
+                detail=f"User {user} is not authorized to access device {device_id}",
             )
 
         # Print or inspect the request data as needed
