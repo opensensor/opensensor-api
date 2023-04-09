@@ -236,7 +236,7 @@ def get_collection_name(response_model: Type[T]):
 
 def sample_and_paginate_collection(
     response_model: Type[T],
-    device_id: str,
+    device_id: str,  # Also accepts a common device id (device_id|device_name)
     start_date: datetime,
     end_date: datetime,
     resolution: int,

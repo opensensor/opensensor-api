@@ -123,9 +123,10 @@ def filter_api_keys_by_device_id(api_keys: List[APIKey], target_device_id: str) 
 
 
 def reduce_api_keys_to_device_ids(
-    api_keys: List[APIKey], target_device_id: str
+    api_keys: List[APIKey], device_common_name: str
 ) -> (List[str], str):
-    api_keys, target_device_name = filter_api_keys_by_device_id(api_keys, target_device_id)
+    device_id, _ = get_device_parts(device_common_name)
+    api_keys, target_device_name = filter_api_keys_by_device_id(api_keys, device_id)
     # Filter the API keys by the device_name
     filtered_device_ids = [
         api_key.device_id for api_key in api_keys if api_key.device_name == target_device_name
