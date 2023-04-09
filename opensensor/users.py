@@ -193,12 +193,8 @@ def get_public_devices() -> List[Dict[str, str]]:
     return public_devices
 
 
-def get_api_keys_by_device_id(device_id: str, device_name: str = None) -> (List[APIKey], User):
-    device_id, device_name_requested = get_device_parts(device_id)
-    if device_name_requested != device_name:
-        raise ValueError(
-            f"Device ID {device_id} is associated with name {device_name}, not {device_name_requested}."
-        )
+def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
+    device_id, device_name = get_device_parts(device_id)
     db = get_open_sensor_db()
     users_db = db["Users"]
     element_match = {"device_id": device_id}
@@ -215,8 +211,8 @@ def get_api_keys_by_device_id(device_id: str, device_name: str = None) -> (List[
     return api_keys, user
 
 
-def get_device_parts(device_id: str) -> (str, str):
-    device_id_parts = device_id.split("|", 1)
+def get_device_parts(device_common_name: str) -> (str, str):
+    device_id_parts = device_common_name.split("|", 1)
     device_id = device_id_parts[0]
     device_name = None
     if len(device_id_parts) > 1:
@@ -224,16 +220,18 @@ def get_device_parts(device_id: str) -> (str, str):
     return device_id, device_name
 
 
-def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
-    device_id, device_name = get_device_parts(device_id)
-    api_keys, owner = get_api_keys_by_device_id(device_id, device_name)
-    api_keys, device_name = filter_api_keys_by_device_id(api_keys, device_id)
+def device_id_is_allowed_for_user(device_common_name: str, user=None) -> bool:
+    device_id, device_name = get_device_parts(device_common_name)
+    api_keys, owner = get_api_keys_by_device_id(device_common_name)
+    api_keys, _ = filter_api_keys_by_device_id(api_keys, device_id)
     if len(api_keys) == 0:
         return True
 
     for api_key in api_keys:
         if api_key.private_data:
             if user is None:
+                return False
+            if api_key.device_name != device_name:
                 return False
             if UUID(user["sub"]) != owner.fief_user_id:
                 return False
