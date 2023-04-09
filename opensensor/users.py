@@ -6,7 +6,7 @@ from uuid import UUID
 
 from bson import Binary
 from fastapi import HTTPException, Request, Response, status
-from fastapi.security import APIKeyCookie, OAuth2AuthorizationCodeBearer
+from fastapi.security import APIKeyHeader, APIKeyCookie, OAuth2AuthorizationCodeBearer
 from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, Field
@@ -27,7 +27,7 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
 )
 oauth2_auth = FiefAuth(fief, oauth2_scheme)
 SESSION_COOKIE_NAME = "user_session"
-scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
+cookie_scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
 
 
 def get_redirect_uri(request):
@@ -239,4 +239,4 @@ def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
     return user
 
 
-auth = CustomFiefStaticAuth(fief, scheme)
+auth = oauth2_auth
