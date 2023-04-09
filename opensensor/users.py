@@ -211,8 +211,12 @@ def get_api_keys_by_device_id(device_id: str, device_name: str = None) -> (List[
 
 
 def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
-    device_id, device_name = device_id.split("|", 1)
-    api_keys, owner = get_api_keys_by_device_id(device_id)
+    device_id_parts = device_id.split("|", 1)
+    device_id = device_id_parts[0]
+    device_name = None
+    if len(device_id_parts) > 1:
+        device_name = device_id_parts[1]
+    api_keys, owner = get_api_keys_by_device_id(device_id, device_name)
     api_keys, device_name = filter_api_keys_by_device_id(api_keys, device_id)
     if len(api_keys) == 0:
         return True
