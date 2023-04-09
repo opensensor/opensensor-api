@@ -199,7 +199,7 @@ def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
     users_db = db["Users"]
     element_match = {"device_id": device_id}
     if device_name:
-        element_match["name"] = device_name
+        element_match["device_name"] = device_name
     user = users_db.find_one({"api_keys": {"$elemMatch": element_match}})
 
     if user:
