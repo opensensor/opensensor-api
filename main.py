@@ -26,9 +26,9 @@ from opensensor.db import get_open_sensor_db
 from opensensor.users import (
     User,
     auth,
-    reduce_api_keys_to_device_ids,
     device_id_is_allowed_for_user,
     get_api_keys_by_device_id,
+    reduce_api_keys_to_device_ids,
     validate_device_metadata,
     validate_environment,
 )
