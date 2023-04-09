@@ -183,16 +183,23 @@ def get_public_devices() -> List[Dict[str, str]]:
         for api_key in user["api_keys"]:
             if not api_key.get("private_data", False):
                 public_devices.append(
-                    {"device_id": api_key["device_id"], "device_name": api_key["device_name"]}
+                    {
+                        "device_id": api_key["device_id"],
+                        "device_name": api_key["device_name"],
+                        "combined_name": f"{api_key['device_id']}|{api_key['device_name']}"
+                    }
                 )
 
     return public_devices
 
 
-def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
+def get_api_keys_by_device_id(device_id: str, device_name: str = None) -> (List[APIKey], User):
     db = get_open_sensor_db()
     users_db = db["Users"]
-    user = users_db.find_one({"api_keys": {"$elemMatch": {"device_id": device_id}}})
+    element_match = {"device_id": device_id}
+    if device_name:
+        element_match["name"] = device_name
+    user = users_db.find_one({"api_keys": {"$elemMatch": element_match}})
 
     if user:
         api_keys = user["api_keys"]
@@ -204,6 +211,7 @@ def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
 
 
 def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
+    device_id, device_name = device_id.split("|", 1)
     api_keys, owner = get_api_keys_by_device_id(device_id)
     api_keys, device_name = filter_api_keys_by_device_id(api_keys, device_id)
     if len(api_keys) == 0:
