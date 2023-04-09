@@ -205,15 +205,16 @@ def get_user_devices(user_id: UUID) -> List[Dict[str, str]]:
 
     # Extract private device_ids and device_names from API keys
     user_devices = []
-    for api_key in user["api_keys"]:
-        if api_key.get("private_data", False):
-            user_devices.append(
-                {
-                    "device_id": api_key["device_id"],
-                    "device_name": api_key["device_name"],
-                    "combined_name": f"{api_key['device_id']}|{api_key['device_name']}",
-                }
-            )
+    if user:
+        for api_key in user.get("api_keys", []):
+            if api_key.get("private_data", False):
+                user_devices.append(
+                    {
+                        "device_id": api_key["device_id"],
+                        "device_name": api_key["device_name"],
+                        "combined_name": f"{api_key['device_id']}|{api_key['device_name']}",
+                    }
+                )
 
     return user_devices
 
