@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Generic, List, Optional, Type, TypeVar
 
 from bson import Binary
-from fastapi import Depends, Path, Query, Response, status
+from fastapi import Depends, Path, Query, Response, Request, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
@@ -270,6 +270,7 @@ def sample_and_paginate_collection(
 
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
+        request: Request,
         user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
         device_id: str = Path(
             title="The ID of the device chain for which to retrieve historical data."
@@ -285,6 +286,11 @@ def create_historical_data_route(entity: Type[T]):
             print(user)
         else:
             print("no user")
+
+        # Print or inspect the request data as needed
+        print(request)
+        print(request.headers)
+        print(request.query_params)
         return sample_and_paginate_collection(
             entity,
             device_id=device_id,
