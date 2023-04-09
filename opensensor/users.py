@@ -26,7 +26,7 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
     auto_error=False,
 )
 oauth2_auth = FiefAuth(fief, oauth2_scheme)
-SESSION_COOKIE_NAME = "grafana_session"
+SESSION_COOKIE_NAME = "user_session"
 scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
 
 
