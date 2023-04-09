@@ -200,7 +200,7 @@ def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
         api_keys = []
 
     api_key_objects = [APIKey(**api_key) for api_key in api_keys]
-    return api_key_objects, user
+    return api_key_objects, User(**user)
 
 
 def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
@@ -213,7 +213,7 @@ def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
         if api_key.private_data:
             if user is None:
                 return False
-            if user["sub"] != owner["fief_user_id"]:
+            if user["sub"] != owner.fief_user_id:
                 return False
 
     return True
