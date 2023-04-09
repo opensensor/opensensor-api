@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Generic, List, Optional, Type, TypeVar
 
 from bson import Binary
-from fastapi import Depends, HTTPException, Path, Query, Request, Response, status
+from fastapi import Depends, HTTPException, Path, Query, Response, status
 from fastapi_pagination import add_pagination
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
