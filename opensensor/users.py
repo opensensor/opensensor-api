@@ -6,7 +6,7 @@ from uuid import UUID
 
 from bson import Binary
 from fastapi import HTTPException, Request, Response, status
-from fastapi.security import APIKeyHeader, APIKeyCookie, OAuth2AuthorizationCodeBearer
+from fastapi.security import APIKeyCookie, OAuth2AuthorizationCodeBearer
 from fief_client import FiefAsync
 from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, Field
@@ -117,10 +117,14 @@ def filter_api_keys_by_device_id(api_keys: List[APIKey], target_device_id: str) 
     if target_device_name is None:
         return [], None
 
-    return [api_key for api_key in api_keys if api_key.device_name == target_device_name], target_device_name
+    return [
+        api_key for api_key in api_keys if api_key.device_name == target_device_name
+    ], target_device_name
 
 
-def reduce_api_keys_to_device_ids(api_keys: List[APIKey], target_device_id: str) -> (List[str], str):
+def reduce_api_keys_to_device_ids(
+    api_keys: List[APIKey], target_device_id: str
+) -> (List[str], str):
     api_keys, target_device_name = filter_api_keys_by_device_id(api_keys, target_device_id)
     # Filter the API keys by the device_name
     filtered_device_ids = [
@@ -200,7 +204,7 @@ def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
 
 
 def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
-    api_keys, user = get_api_keys_by_device_id(device_id)
+    api_keys, owner = get_api_keys_by_device_id(device_id)
     api_keys, device_name = filter_api_keys_by_device_id(api_keys, device_id)
     if len(api_keys) == 0:
         return True
@@ -209,7 +213,7 @@ def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
         if api_key.private_data:
             if user is None:
                 return False
-            if user['sub'] != user['fief_user_id']:
+            if user['sub'] != owner['fief_user_id']:
                 return False
 
     return True
