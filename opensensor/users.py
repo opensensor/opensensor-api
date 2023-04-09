@@ -199,9 +199,7 @@ def get_user_devices(user_id: UUID) -> List[Dict[str, str]]:
     collection = db["Users"]
 
     # Query for the user and their API keys
-    user = collection.find_one(
-        {"_id": Binary.from_uuid(user_id)}, {"_id": 0, "api_keys": 1}
-    )
+    user = collection.find_one({"_id": Binary.from_uuid(user_id)}, {"_id": 0, "api_keys": 1})
 
     # Extract private device_ids and device_names from API keys
     user_devices = []
