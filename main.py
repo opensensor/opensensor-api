@@ -244,7 +244,7 @@ def sample_and_paginate_collection(
     size: int,
     unit: str,
 ):
-    api_keys = get_api_keys_by_device_id(device_id)
+    api_keys, _ = get_api_keys_by_device_id(device_id)
     device_ids, target_device_name = reduce_api_keys_to_device_ids(api_keys, device_id)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(

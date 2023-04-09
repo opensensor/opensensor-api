@@ -185,7 +185,7 @@ def get_public_devices() -> List[Dict[str, str]]:
     return public_devices
 
 
-def get_api_keys_by_device_id(device_id: str) -> List[APIKey]:
+def get_api_keys_by_device_id(device_id: str) -> (List[APIKey], User):
     db = get_open_sensor_db()
     users_db = db["Users"]
     user = users_db.find_one({"api_keys": {"$elemMatch": {"device_id": device_id}}})
@@ -196,11 +196,11 @@ def get_api_keys_by_device_id(device_id: str) -> List[APIKey]:
         api_keys = []
 
     api_key_objects = [APIKey(**api_key) for api_key in api_keys]
-    return api_key_objects
+    return api_key_objects, user
 
 
 def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
-    api_keys = get_api_keys_by_device_id(device_id)
+    api_keys, user = get_api_keys_by_device_id(device_id)
     api_keys, device_name = filter_api_keys_by_device_id(api_keys, device_id)
     if len(api_keys) == 0:
         return True
@@ -209,7 +209,7 @@ def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
         if api_key.private_data:
             if user is None:
                 return False
-            if user['sub'] != api_key.fief_user_id:
+            if user['sub'] != user['fief_user_id']:
                 return False
 
     return True
