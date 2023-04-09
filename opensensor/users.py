@@ -209,7 +209,7 @@ def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
         if api_key.private_data:
             if user is None:
                 return False
-            if user['sub'] != api_key.user_id:
+            if user['sub'] != api_key.fief_user_id:
                 return False
 
     return True
