@@ -186,7 +186,7 @@ def get_public_devices() -> List[Dict[str, str]]:
                     {
                         "device_id": api_key["device_id"],
                         "device_name": api_key["device_name"],
-                        "combined_name": f"{api_key['device_id']}|{api_key['device_name']}"
+                        "combined_name": f"{api_key['device_id']}|{api_key['device_name']}",
                     }
                 )
 
