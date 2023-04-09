@@ -9,7 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fief_client import FiefAccessTokenInfo, FiefUserInfo
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from opensensor.users import add_api_key, auth, get_or_create_user, get_public_devices, get_user_devices
+from opensensor.users import (
+    add_api_key,
+    auth,
+    get_or_create_user,
+    get_public_devices,
+    get_user_devices,
+)
 
 origins = [
     "https://graph.opensensor.io",
