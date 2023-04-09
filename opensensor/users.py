@@ -194,6 +194,11 @@ def get_public_devices() -> List[Dict[str, str]]:
 
 
 def get_api_keys_by_device_id(device_id: str, device_name: str = None) -> (List[APIKey], User):
+    device_id, device_name_requested = get_device_parts(device_id)
+    if device_name_requested != device_name:
+        raise ValueError(
+            f"Device ID {device_id} is associated with name {device_name}, not {device_name_requested}."
+        )
     db = get_open_sensor_db()
     users_db = db["Users"]
     element_match = {"device_id": device_id}
@@ -202,20 +207,25 @@ def get_api_keys_by_device_id(device_id: str, device_name: str = None) -> (List[
     user = users_db.find_one({"api_keys": {"$elemMatch": element_match}})
 
     if user:
-        api_keys = user["api_keys"]
+        user = User(**user)
+        api_keys = user.api_keys
     else:
         api_keys = []
 
-    api_key_objects = [APIKey(**api_key) for api_key in api_keys]
-    return api_key_objects, User(**user)
+    return api_keys, user
 
 
-def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
+def get_device_parts(device_id: str) -> (str, str):
     device_id_parts = device_id.split("|", 1)
     device_id = device_id_parts[0]
     device_name = None
     if len(device_id_parts) > 1:
         device_name = device_id_parts[1]
+    return device_id, device_name
+
+
+def device_id_is_allowed_for_user(device_id: str, user=None) -> bool:
+    device_id, device_name = get_device_parts(device_id)
     api_keys, owner = get_api_keys_by_device_id(device_id, device_name)
     api_keys, device_name = filter_api_keys_by_device_id(api_keys, device_id)
     if len(api_keys) == 0:
