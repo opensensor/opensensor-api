@@ -233,11 +233,11 @@
                 "pymongo"
             ],
             "hashes": [
-                "sha256:6d3e0d52e510cd58e68fa4699999e06abaf7062762af08dc3ce49939924cebbd",
-                "sha256:9457b78cd5d0be590cbda506d5913f9d196a7b50768b7943cd0ad6a5f5aa090c"
+                "sha256:214957a1ad7d4ca96d26867e7556b54c96e885676b698f9fe1e4c1e489bdfc63",
+                "sha256:b8ef62be00fcafbb3dd82e7535e9eac689d9ea715c26f9a830f0ae7a2dc76eed"
             ],
             "index": "pypi",
-            "version": "==0.11.4"
+            "version": "==0.12.1"
         },
         "fastapi-users": {
             "extras": [
@@ -408,7 +408,7 @@
                 "sha256:23ac5d50538a9a38c8bde05fecb47d0b403ecd0662857a86f886f798563d5b9b",
                 "sha256:45ea77a2f7c60418850331366c81cf6b5b9cf4c7fd34616f733c5427e6abbb1f"
             ],
-            "markers": "python_full_version >= '3.7.0'",
+            "markers": "python_version >= '3.7'",
             "version": "==3.0.38"
         },
         "ptyprocess": {
@@ -476,11 +476,11 @@
         },
         "pygments": {
             "hashes": [
-                "sha256:b3ed06a9e8ac9a9aae5a6f5dbe78a8a58655d17b43b93c078f094ddc476ae297",
-                "sha256:fa7bd7bd2771287c0de303af8bfdfc731f51bd2c6a47ab69d117138893b82717"
+                "sha256:77a3299119af881904cd5ecd1ac6a66214b6e9bed1f2db16993b54adede64094",
+                "sha256:f7e36cffc4c517fbc252861b9a6e4644ca0e5abadf9a113c72d1358ad09b9500"
             ],
-            "markers": "python_version >= '3.6'",
-            "version": "==2.14.0"
+            "markers": "python_version >= '3.7'",
+            "version": "==2.15.0"
         },
         "pyjwt": {
             "extras": [
