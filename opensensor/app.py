@@ -49,9 +49,10 @@ async def health_check():
     return {"status": "OK"}
 
 
-
 @app.get("/masked_devices/")
-async def get_masked_devices(access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated())):
+async def get_masked_devices(
+    access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated()),
+):
     user_id = access_token_info["id"]
     result = list_user_devices(user_id=user_id)
     return result

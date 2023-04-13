@@ -1,7 +1,7 @@
 import base64
-from collections import defaultdict
 import os
 import secrets
+from collections import defaultdict
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -193,12 +193,14 @@ def list_user_devices(user_id: UUID) -> dict[str, list]:
             if device_name not in result:
                 result[device_name] = []
 
-            result[device_name].append({
-                "device_id": api_key["device_id"],
-                "masked_key": masked_key,
-                "private_data": api_key["private_data"],
-                "description": api_key["description"]
-            })
+            result[device_name].append(
+                {
+                    "device_id": api_key["device_id"],
+                    "masked_key": masked_key,
+                    "private_data": api_key["private_data"],
+                    "description": api_key["description"],
+                }
+            )
 
     return result
 
