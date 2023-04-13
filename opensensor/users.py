@@ -1,4 +1,5 @@
 import base64
+from collections import defaultdict
 import os
 import secrets
 from typing import Dict, List, Optional
@@ -77,6 +78,10 @@ class APIKey(BaseModel):
 class User(BaseModel):
     fief_user_id: Optional[UUID] = Field(None, alias="_id")
     api_keys: List[APIKey]
+
+
+def mask_key(key: str) -> str:
+    return "****-****-****-" + key[-4:]
 
 
 def get_or_create_user(user_id: UUID) -> User:
@@ -169,6 +174,33 @@ def add_api_key(
     )
 
     return new_api_key
+
+
+def list_user_devices(user_id: UUID) -> dict[str, list]:
+    db = get_open_sensor_db()
+    users_db = db["Users"]
+    binary_uuid = Binary.from_uuid(user_id)
+    user_doc = users_db.find_one({"_id": binary_uuid})
+
+    result = defaultdict(list)
+    if user_doc:
+        api_keys = user_doc["api_keys"]
+
+        for api_key in api_keys:
+            device_name = api_key["device_name"]
+            masked_key = mask_key(api_key["key"])
+
+            if device_name not in result:
+                result[device_name] = []
+
+            result[device_name].append({
+                "device_id": api_key["device_id"],
+                "masked_key": masked_key,
+                "private_data": api_key["private_data"],
+                "description": api_key["description"]
+            })
+
+    return result
 
 
 def get_public_devices() -> List[Dict[str, str]]:
