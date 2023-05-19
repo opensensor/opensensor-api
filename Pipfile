@@ -10,7 +10,6 @@ pydantic = "*"
 pymongo = {extras = ["srv"], version = "*"}
 ipython = "*"
 simplejson = "*"
-install = "*"
 fastapi-pagination = {extras = ["pymongo"], version = "*"}
 fastapi-users = {extras = ["beanie"], version = "*"}
 fief-client = {extras = ['fastapi'], version = "*"}
