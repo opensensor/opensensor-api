@@ -233,11 +233,11 @@
                 "pymongo"
             ],
             "hashes": [
-                "sha256:914b3af4ffc1f002293bf38f1a6fa2cef96863d5742c033c20beb5baf1f2b3b3",
-                "sha256:fa9380d481499c3dd94e878d36cc399c67052c5372a0384e13c7a5251d1cb416"
+                "sha256:0d3d25f8a2adf7d35b8a1fb382cd41cad44aaba79f534da5b9c589328fd42465",
+                "sha256:1e05e9801bce824b53ba983180e412c38c1d92f35db7ebb57d286a6bbe611461"
             ],
             "index": "pypi",
-            "version": "==0.12.3"
+            "version": "==0.12.4"
         },
         "fastapi-users": {
             "extras": [
