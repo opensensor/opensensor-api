@@ -16,6 +16,7 @@ fief-client = {extras = ['fastapi'], version = "*"}
 starlette-csrf = "*"
 
 [dev-packages]
+pytest = "*"
 
 [requires]
 python_version = "3.11"
