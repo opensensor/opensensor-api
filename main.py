@@ -1,6 +1,6 @@
 from fastapi_pagination import add_pagination
 
-from opensensor.app import app
+from opensensor.collection_apis import *
 
 
 @app.get("/")
