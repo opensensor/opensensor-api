@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Generic, List, Optional, Type, TypeVar
 
-from fastapi import Depends, HTTPException, Path, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
 from fief_client import FiefUserInfo
@@ -43,7 +43,10 @@ class Page(BasePage[T], Generic[T]):
     __params_type__ = Params
 
 
-@app.post("/rh/", response_model=Humidity)
+router = APIRouter()
+
+
+@router.post("/rh/", response_model=Humidity)
 async def record_humidity(
     device_metadata: DeviceMetadata,
     rh: Humidity,
@@ -54,7 +57,7 @@ async def record_humidity(
     return Response(status_code=status.HTTP_201_CREATED)
 
 
-@app.post("/temp/", response_model=Temperature)
+@router.post("/temp/", response_model=Temperature)
 async def record_temperature(
     device_metadata: DeviceMetadata,
     temp: Temperature,
@@ -65,7 +68,7 @@ async def record_temperature(
     return Response(status_code=status.HTTP_201_CREATED)
 
 
-@app.post("/pressure/", response_model=Pressure)
+@router.post("/pressure/", response_model=Pressure)
 async def record_pressure(
     device_metadata: DeviceMetadata,
     pressure: Pressure,
@@ -76,7 +79,7 @@ async def record_pressure(
     return Response(status_code=status.HTTP_201_CREATED)
 
 
-@app.post("/lux/", response_model=Lux)
+@router.post("/lux/", response_model=Lux)
 async def record_lux(
     device_metadata: DeviceMetadata,
     lux: Lux,
@@ -87,7 +90,7 @@ async def record_lux(
     return Response(status_code=status.HTTP_201_CREATED)
 
 
-@app.post("/CO2/", response_model=CO2)
+@router.post("/CO2/", response_model=CO2)
 async def record_co2(
     device_metadata: DeviceMetadata,
     co2: CO2,
@@ -98,7 +101,7 @@ async def record_co2(
     return Response(status_code=status.HTTP_201_CREATED)
 
 
-@app.post("/moisture/", response_model=Moisture)
+@router.post("/moisture/", response_model=Moisture)
 async def record_moisture_readings(
     device_metadata: DeviceMetadata,
     moisture: Moisture,
@@ -254,28 +257,28 @@ async def record_ph(
     return Response(status_code=status.HTTP_201_CREATED)
 
 
-app.add_api_route(
+router.add_api_route(
     "/temp/{device_id}",
     create_historical_data_route(Temperature),
     response_model=Page[Temperature],
     methods=["GET"],
 )
-app.add_api_route(
+router.add_api_route(
     "/humidity/{device_id}",
     create_historical_data_route(Humidity),
     response_model=Page[Humidity],
     methods=["GET"],
 )
-app.add_api_route(
+router.add_api_route(
     "/CO2/{device_id}", create_historical_data_route(CO2), response_model=Page[CO2], methods=["GET"]
 )
-app.add_api_route(
+router.add_api_route(
     "/moisture/{device_id}",
     create_historical_data_route(Moisture),
     response_model=Page[Moisture],
     methods=["GET"],
 )
-app.add_api_route(
+router.add_api_route(
     "/pH/{device_id}",
     create_historical_data_route(PH),
     response_model=Page[PH],
@@ -283,7 +286,7 @@ app.add_api_route(
 )
 
 
-@app.post("/environment/")
+@router.post("/environment/")
 async def record_environment(
     environment: Environment,
     user: User = Depends(validate_environment),
