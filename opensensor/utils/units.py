@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-
 from opensensor.collections import Temperature
 
 

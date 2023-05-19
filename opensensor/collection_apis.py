@@ -22,15 +22,15 @@ from opensensor.collections import (
 from opensensor.db import get_open_sensor_db
 from opensensor.users import (
     User,
+    _record_data_point_to_ts_collection,
     auth,
     device_id_is_allowed_for_user,
     get_api_keys_by_device_id,
     reduce_api_keys_to_device_ids,
     validate_device_metadata,
-    validate_environment, _record_data_point_to_ts_collection,
+    validate_environment,
 )
 from opensensor.utils.units import convert_temperature
-
 
 T = TypeVar("T", bound=BaseModel)
 
