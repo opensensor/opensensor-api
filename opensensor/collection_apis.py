@@ -19,7 +19,7 @@ from opensensor.collections import (
     Pressure,
     Temperature,
 )
-from opensensor.db import get_open_sensor_db, _record_data_point_to_ts_collection
+from opensensor.db import get_open_sensor_db
 from opensensor.users import (
     User,
     auth,
@@ -27,7 +27,7 @@ from opensensor.users import (
     get_api_keys_by_device_id,
     reduce_api_keys_to_device_ids,
     validate_device_metadata,
-    validate_environment,
+    validate_environment, _record_data_point_to_ts_collection,
 )
 from opensensor.utils.units import convert_temperature
 
