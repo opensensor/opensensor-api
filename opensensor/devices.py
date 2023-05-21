@@ -42,7 +42,7 @@ def add_command_for_user(user: User, device_id: str, device_name: str, command: 
     return new_command
 
 
-@router.post("/command/")
+@router.post("/command/device")
 async def issue_command(
     device_id: str = Body(...),
     device_name: str = Body(...),

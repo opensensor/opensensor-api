@@ -183,29 +183,33 @@ def add_api_key(
     return new_api_key
 
 
-def list_user_devices(user_id: UUID) -> dict[str, list]:
+def list_user_devices(user_id: UUID) -> dict[str, dict]:
     db = get_open_sensor_db()
     users_db = db["Users"]
     binary_uuid = Binary.from_uuid(user_id)
     user_doc = users_db.find_one({"_id": binary_uuid})
 
-    result = defaultdict(list)
+    result = defaultdict(dict)
     if user_doc:
         api_keys = user_doc["api_keys"]
+        commands_issued = user_doc["commands_issued"]
 
         for api_key in api_keys:
             device_name = api_key["device_name"]
             masked_key = mask_key(api_key["key"])
 
-            if device_name not in result:
-                result[device_name] = []
+            result[device_name][api_key["device_id"]] = {
+                "masked_key": masked_key,
+                "private_data": api_key["private_data"],
+                "description": api_key["description"],
+            }
 
-            result[device_name].append(
+        for command in commands_issued:
+            device_name = command["device_name"]
+            result[device_name]["commands_issued"].append(
                 {
-                    "device_id": api_key["device_id"],
-                    "masked_key": masked_key,
-                    "private_data": api_key["private_data"],
-                    "description": api_key["description"],
+                    "command": command["command"],
+                    "timestamp": command["timestamp"],
                 }
             )
 
