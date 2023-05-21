@@ -1,3 +1,5 @@
+import json
+
 from bson import Binary
 from fastapi import APIRouter, Body, Depends, Response, status
 from fief_client import FiefAccessTokenInfo
@@ -94,4 +96,4 @@ async def consume_command(
 ):
     command = consume_next_command_for_device(user, device_metadata.name)
 
-    return Response(command, status_code=status.HTTP_201_CREATED)
+    return Response(json.dumps(command.dict()), status_code=status.HTTP_201_CREATED)
