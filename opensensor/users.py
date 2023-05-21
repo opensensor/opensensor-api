@@ -190,6 +190,7 @@ def list_user_devices(user_id: UUID) -> dict[str, dict]:
     user_doc = users_db.find_one({"_id": binary_uuid})
 
     result = defaultdict(dict)
+    result["commands_issued"] = {}
     if user_doc:
         api_keys = user_doc["api_keys"]
         commands_issued = user_doc["commands_issued"]
@@ -206,9 +207,11 @@ def list_user_devices(user_id: UUID) -> dict[str, dict]:
 
         for command in commands_issued:
             device_name = command["device_name"]
-            if "commands_issued" not in result[device_name]:
-                result[device_name]["commands_issued"] = []
-            result[device_name]["commands_issued"].append(
+            if device_name not in result["commands_issued"]:
+                result["commands_issued"][device_name] = {
+                    "outstanding": [],
+                }
+            result["commands_issued"][device_name]["outstanding"].append(
                 {
                     "command": command["command"],
                 }
