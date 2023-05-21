@@ -94,4 +94,4 @@ async def consume_command(
 ):
     command = consume_next_command_for_device(user, device_metadata.name)
 
-    return Response(command.dict(), status_code=status.HTTP_201_CREATED)
+    return Response(command, status_code=status.HTTP_201_CREATED)
