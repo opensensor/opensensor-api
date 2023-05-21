@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Generic, List, Optional, Type, TypeVar
 
+from bson import Binary
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
@@ -22,7 +23,6 @@ from opensensor.collections import (
 from opensensor.db import get_open_sensor_db
 from opensensor.users import (
     User,
-    _record_data_point_to_ts_collection,
     auth,
     device_id_is_allowed_for_user,
     get_api_keys_by_device_id,
@@ -44,6 +44,27 @@ class Page(BasePage[T], Generic[T]):
 
 
 router = APIRouter()
+
+
+def _record_data_point_to_ts_collection(
+    collection,
+    ts_column_name: str,
+    device_metadata: DeviceMetadata,
+    data_point,
+    user: User = None,
+):
+    metadata = device_metadata.dict()
+    metadata.pop("api_key", None)
+    if user:
+        metadata["user_id"] = Binary.from_uuid(user.fief_user_id)
+    if hasattr(data_point, "unit"):
+        metadata["unit"] = data_point.unit
+    data = {
+        "timestamp": datetime.utcnow(),
+        "metadata": metadata,
+        ts_column_name: str(getattr(data_point, ts_column_name)),
+    }
+    collection.insert_one(data)
 
 
 @router.post("/rh/", response_model=Humidity)
@@ -109,6 +130,17 @@ async def record_moisture_readings(
 ):
     db = get_open_sensor_db()
     _record_data_point_to_ts_collection(db.Moisture, "readings", device_metadata, moisture)
+    return Response(status_code=status.HTTP_201_CREATED)
+
+
+@app.post("/pH/", response_model=PH)
+async def record_ph(
+    device_metadata: DeviceMetadata,
+    ph: PH,
+    user: User = Depends(validate_device_metadata),
+):
+    db = get_open_sensor_db()
+    _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, ph, user)
     return Response(status_code=status.HTTP_201_CREATED)
 
 
@@ -244,17 +276,6 @@ def create_historical_data_route(entity: Type[T]):
         )
 
     return historical_data_route
-
-
-@app.post("/pH/", response_model=PH)
-async def record_ph(
-    device_metadata: DeviceMetadata,
-    ph: PH,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, ph, user)
-    return Response(status_code=status.HTTP_201_CREATED)
 
 
 router.add_api_route(

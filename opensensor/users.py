@@ -2,7 +2,6 @@ import base64
 import os
 import secrets
 from collections import defaultdict
-from datetime import datetime
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -344,24 +343,3 @@ def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
 
 
 auth = oauth2_auth
-
-
-def _record_data_point_to_ts_collection(
-    collection,
-    ts_column_name: str,
-    device_metadata: DeviceMetadata,
-    data_point,
-    user: User = None,
-):
-    metadata = device_metadata.dict()
-    metadata.pop("api_key", None)
-    if user:
-        metadata["user_id"] = Binary.from_uuid(user.fief_user_id)
-    if hasattr(data_point, "unit"):
-        metadata["unit"] = data_point.unit
-    data = {
-        "timestamp": datetime.utcnow(),
-        "metadata": metadata,
-        ts_column_name: str(getattr(data_point, ts_column_name)),
-    }
-    collection.insert_one(data)
