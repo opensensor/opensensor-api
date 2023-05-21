@@ -206,6 +206,8 @@ def list_user_devices(user_id: UUID) -> dict[str, dict]:
 
         for command in commands_issued:
             device_name = command["device_name"]
+            if "commands_issued" not in result[device_name]:
+                result[device_name]["commands_issued"] = []
             result[device_name]["commands_issued"].append(
                 {
                     "command": command["command"],
