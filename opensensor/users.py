@@ -194,7 +194,7 @@ def list_user_devices(user_id: UUID) -> dict[str, dict]:
     result["known_devices"] = {}
     if user_doc:
         api_keys = user_doc["api_keys"]
-        commands_issued = user_doc["commands_issued"]
+        commands_issued = user_doc.get("commands_issued", [])
 
         for api_key in api_keys:
             device_name = api_key["device_name"]
