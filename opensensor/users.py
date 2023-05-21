@@ -211,7 +211,6 @@ def list_user_devices(user_id: UUID) -> dict[str, dict]:
             result[device_name]["commands_issued"].append(
                 {
                     "command": command["command"],
-                    "timestamp": command["timestamp"],
                 }
             )
 
