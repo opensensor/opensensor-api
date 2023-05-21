@@ -22,6 +22,7 @@ origins = [
     "https://graph.opensensor.io",
     "https://opensensor.io",
     "https://www.opensensor.io",
+    "https://9f40-74-77-171-121.ngrok-free.app/",  # Hackathon
 ]
 
 

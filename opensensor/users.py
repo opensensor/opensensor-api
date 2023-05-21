@@ -75,9 +75,16 @@ class APIKey(BaseModel):
     private_data: bool = False
 
 
+class Command(BaseModel):
+    device_name: str
+    device_id: str
+    command: str
+
+
 class User(BaseModel):
     fief_user_id: Optional[UUID] = Field(None, alias="_id")
     api_keys: List[APIKey]
+    commands_issued: List[Command] = []
 
 
 def mask_key(key: str) -> str:
