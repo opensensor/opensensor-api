@@ -85,3 +85,18 @@ async def device_listing(user: Optional[FiefUserInfo] = Depends(auth.current_use
     if user:
         public_device_data += get_user_devices(user_id=UUID(user["sub"]))
     return public_device_data
+
+
+@app.post("/retrieve-api-key")
+async def retrieve_api_key(
+    device_id: str = Body(...),
+    device_name: str = Body(...),
+    access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated()),
+):
+    user_id = access_token_info["id"]
+    user = get_or_create_user(user_id)
+    devices = get_user_devices(user_id=UUID(user["sub"]))
+    for device in devices:
+        if device["device_id"] == device_id and device["device_name"] == device_name:
+            return {"api_key": device["api_key"]}
+    return {"message": f"API key not found for device {device_id} {device_name}"}
