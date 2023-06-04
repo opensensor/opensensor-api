@@ -93,8 +93,7 @@ async def retrieve_api_key(
     device_name: str = Body(...),
     user: Optional[FiefUserInfo] = Depends(auth.current_user()),
 ):
-    devices = get_user_devices(user_id=UUID(user["sub"]))
-    for device in devices:
-        if device["device_id"] == device_id and device["device_name"] == device_name:
-            return {"api_key": device["api_key"]}
-    return {"message": f"API key not found for device {device_id} {device_name}"}
+    for api_key in user.get("api_keys", []):
+        if api_key["device_id"] == device_id and api_key["device_name"] == device_name:
+            return {"api_key": api_key["api_key"]}
+    return {"message": f"API key not found for device {device_name}|{device_id}"}
