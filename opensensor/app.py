@@ -3,12 +3,14 @@ import json
 from typing import Optional
 from uuid import UUID
 
+from bson import Binary
 from fastapi import Body, Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fief_client import FiefAccessTokenInfo, FiefUserInfo
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
+from opensensor.db import get_open_sensor_db
 from opensensor.users import (
     add_api_key,
     auth,
@@ -80,10 +82,12 @@ async def generate_api_key(
 
 
 @app.get("/device-listing")
-async def device_listing(user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True))):
+async def device_listing(
+    fief_user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
+):
     public_device_data = get_public_devices()
-    if user:
-        public_device_data += get_user_devices(user_id=UUID(user["sub"]))
+    if fief_user:
+        public_device_data += get_user_devices(user_id=UUID(fief_user["sub"]))
     return public_device_data
 
 
@@ -91,9 +95,16 @@ async def device_listing(user: Optional[FiefUserInfo] = Depends(auth.current_use
 async def retrieve_api_key(
     device_id: str = Body(...),
     device_name: str = Body(...),
-    user: Optional[FiefUserInfo] = Depends(auth.current_user()),
+    fief_user: Optional[FiefUserInfo] = Depends(auth.current_user()),
 ):
+    db = get_open_sensor_db()
+    collection = db["Users"]
+
+    # Query for the user and their API keys
+    user = collection.find_one(
+        {"_id": Binary.from_uuid(fief_user["sub"])}, {"_id": 0, "api_keys": 1}
+    )
     for api_key in user.get("api_keys", []):
         if api_key["device_id"] == device_id and api_key["device_name"] == device_name:
-            return {"api_key": api_key["api_key"]}
+            return {"api_key": api_key["key"]}
     return {"message": f"API key not found for device {device_name}|{device_id}"}
