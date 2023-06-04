@@ -91,10 +91,8 @@ async def device_listing(user: Optional[FiefUserInfo] = Depends(auth.current_use
 async def retrieve_api_key(
     device_id: str = Body(...),
     device_name: str = Body(...),
-    access_token_info: FiefAccessTokenInfo = Depends(auth.authenticated()),
+    user: Optional[FiefUserInfo] = Depends(auth.current_user()),
 ):
-    user_id = access_token_info["id"]
-    user = get_or_create_user(user_id)
     devices = get_user_devices(user_id=UUID(user["sub"]))
     for device in devices:
         if device["device_id"] == device_id and device["device_name"] == device_name:
