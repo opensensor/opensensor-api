@@ -94,5 +94,7 @@ async def consume_command(
     user: User = Depends(validate_device_metadata),
 ):
     command = consume_next_command_for_device(user, device_metadata.name)
+    if command is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     return JSONResponse(command.dict(), status_code=status.HTTP_201_CREATED)
