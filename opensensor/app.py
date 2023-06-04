@@ -3,6 +3,7 @@ import json
 from typing import Optional
 from uuid import UUID
 
+from bson import Binary
 from fastapi import Body, Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
@@ -99,7 +100,9 @@ async def retrieve_api_key(
     collection = db["Users"]
 
     # Query for the user and their API keys
-    user = collection.find_one({"_id": UUID(fief_user["sub"])}, {"_id": 0, "api_keys": 1})
+    user = collection.find_one(
+        {"_id": Binary.from_uuid(UUID(fief_user["sub"]))}, {"_id": 0, "api_keys": 1}
+    )
     for api_key in user.get("api_keys", []):
         if api_key["device_id"] == device_id and api_key["device_name"] == device_name:
             return {"api_key": api_key["key"]}
