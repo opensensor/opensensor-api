@@ -253,6 +253,7 @@ model_classes = {
     "moisture": Moisture,
     "pH": PH,
 }
+model_class_attributes = {v: k for k, v in model_classes.items()}
 
 
 def sample_and_paginate_collection(
@@ -311,7 +312,7 @@ def create_historical_data_route(entity: Type[T]):
             )
 
         return sample_and_paginate_collection(
-            entity,
+            model_class_attributes[entity],
             device_id=device_id,
             start_date=start_date,
             end_date=end_date,

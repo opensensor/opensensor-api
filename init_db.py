@@ -68,4 +68,4 @@ try:
         expireAfterSeconds=8000000,
     )
 except pymongo.errors.CollectionInvalid:
-    print("Temperature collection Already exists, skipping ...")
+    print("FreeTier collection Already exists, skipping ...")
