@@ -8,7 +8,6 @@ from fastapi_pagination.default import Params as BaseParams
 from fief_client import FiefUserInfo
 from pydantic import BaseModel
 
-from opensensor.app import app
 from opensensor.collections import (
     CO2,
     PH,
@@ -65,6 +64,40 @@ def _record_data_point_to_ts_collection(
         ts_column_name: str(getattr(data_point, ts_column_name)),
     }
     collection.insert_one(data)
+
+
+def _record_data_to_ts_collection(
+    collection,
+    environment: Environment,
+    user: User = None,
+):
+    metadata = environment.device_metadata.dict()
+    metadata.pop("api_key", None)
+    if user:
+        metadata["user_id"] = Binary.from_uuid(user.fief_user_id)
+
+    # Start building the document to insert
+    doc_to_insert = {
+        "timestamp": datetime.utcnow(),
+        "metadata": metadata,
+    }
+
+    # Add each data point to the document
+    env_dict = environment.dict()
+    for column_name, model_instance in env_dict.items():
+        if model_instance is not None and column_name != "device_metadata":
+            # We go with the current time because time series collections are restricted this way
+            model_instance.pop("timestamp", None)
+
+            for key, value in model_instance.items():
+                if value is not None:
+                    if key == "unit":
+                        doc_to_insert[column_name + "_unit"] = value
+                    else:
+                        doc_to_insert[column_name] = value
+
+    # Insert the document into the collection
+    collection.insert_one(doc_to_insert)
 
 
 @router.post("/rh/", response_model=Humidity)
@@ -133,7 +166,7 @@ async def record_moisture_readings(
     return Response(status_code=status.HTTP_201_CREATED)
 
 
-@app.post("/pH/", response_model=PH)
+@router.post("/pH/", response_model=PH)
 async def record_ph(
     device_metadata: DeviceMetadata,
     ph: PH,
@@ -165,7 +198,7 @@ def _get_project_projection(response_model: Type[T]):
 
 
 def get_uniform_sample_pipeline(
-    response_model: Type[T],
+    data_field: str,
     device_ids: List[str],  # Update the type of the device_id parameter to List[str]
     device_name: str,
     start_date: datetime,
@@ -182,6 +215,7 @@ def get_uniform_sample_pipeline(
     pipeline = [
         {
             "$match": {
+                data_field: {"$exists": True},
                 "timestamp": {"$gte": start_date, "$lte": end_date},
                 "metadata.device_id": {
                     "$in": device_ids
@@ -203,16 +237,27 @@ def get_uniform_sample_pipeline(
         },
         {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
-        {"$project": _get_project_projection(response_model)},
+        {"$project": {data_field: True, "timestamp": True, "unit": f"{data_field}_unit"}},
         {"$sort": {"timestamp": 1}},  # Sort by timestamp in ascending order
         # {"$count": "total"}
     ]
     return pipeline
 
 
+model_classes = {
+    "temp": Temperature,
+    "rh": Humidity,
+    "pressure": Pressure,
+    "lux": Lux,
+    "co2": CO2,
+    "moisture": Moisture,
+    "pH": PH,
+}
+
+
 def sample_and_paginate_collection(
-    response_model: Type[T],
-    device_id: str,  # Also accepts a common device id (device_id|device_name)
+    data_field: str,
+    device_id: str,
     start_date: datetime,
     end_date: datetime,
     resolution: int,
@@ -224,20 +269,21 @@ def sample_and_paginate_collection(
     device_ids, target_device_name = reduce_api_keys_to_device_ids(api_keys, device_id)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
-        response_model, device_ids, target_device_name, start_date, end_date, resolution
+        data_field, device_ids, target_device_name, start_date, end_date, resolution
     )
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
     db = get_open_sensor_db()
-    collection = db[get_collection_name(response_model)]
+    collection = db["FreeTier"]
     raw_data = list(collection.aggregate(pipeline))
     # Add UTC offset to timestamp field
     for item in raw_data:
         item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
-    data = [response_model(**item) for item in raw_data]
-    if response_model == Temperature and unit:
-        for t in data:
-            convert_temperature(t, unit)
+    model_class = model_classes[data_field]
+    data = [model_class(**item) for item in raw_data]
+    if data_field == "temp" and unit:
+        for item in data:
+            convert_temperature(item, unit)
     # Re-run for total page count
     pipeline.append({"$count": "total"})
     data_count = list(collection.aggregate(pipeline))
@@ -313,6 +359,8 @@ async def record_environment(
     user: User = Depends(validate_environment),
 ):
     db = get_open_sensor_db()
+    _record_data_to_ts_collection(db.FreeTier, environment, user)
+    # Legacy to be removed once everything converts over to the new collection
     if environment.temp:
         _record_data_point_to_ts_collection(
             db.Temperature, "temp", environment.device_metadata, environment.temp, user
