@@ -56,15 +56,18 @@ while start_date <= latest_timestamp:
         collection = db[collection_name]
         for document in collection.find({"timestamp": {"$gte": start_date, "$lt": end_date}}):
             # Convert to the FreeTier model
+            unit = document["metadata"].get("unit")
             new_document = {
-                "device_metadata": {
-                    "device_id": document["device_id"],
-                    "name": document.get("name"),
-                    "api_key": document.get("api_key"),
+                "metadata": {
+                    "device_id": document["metadata"]["device_id"],
+                    "name": document["metadata"].get("name"),
+                    "user_id": document.get("user_id"),
                 },
                 new_collections[collection_name]: document.get(old_collections[collection_name]),
                 "timestamp": document["timestamp"],
             }
+            if unit:
+                new_document[f"{new_collections[collection_name]}_unit"] = unit
 
             # Add the new document to the list
             all_documents.append(new_document)
