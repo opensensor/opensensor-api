@@ -118,12 +118,13 @@ def get_or_create_user(user_id: UUID) -> User:
 
 
 def get_user_from_fief_user(fief_user: FiefUserInfo) -> User:
-    db = get_open_sensor_db()
-    users_db = db["Users"]
-    fief_user_id = fief_user["sub"]
-    binary_uuid = Binary.from_uuid(UUID(fief_user_id))
-    user = users_db.find_one({"_id": binary_uuid})
-    return user
+    if fief_user:
+        db = get_open_sensor_db()
+        users_db = db["Users"]
+        fief_user_id = fief_user["sub"]
+        binary_uuid = Binary.from_uuid(UUID(fief_user_id))
+        user = users_db.find_one({"_id": binary_uuid})
+        return user
 
 
 def migration_complete(migration_name: str) -> bool:
