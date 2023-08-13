@@ -130,7 +130,7 @@ def migration_complete(migration_name: str) -> bool:
     db = get_open_sensor_db()
     migration = db.Migration.find_one({"migration_name": migration_name})
     if migration:
-        return migration.migration_complete
+        return migration.get("migration_complete", False)
     else:
         return False
 
