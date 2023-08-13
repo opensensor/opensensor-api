@@ -222,7 +222,6 @@ def get_uniform_sample_pipeline(
         project_projection = {data_field: True, "timestamp": True, "unit": f"{data_field}_unit"}
 
     match = {
-        data_field: {"$exists": True},
         "timestamp": {"$gte": start_date, "$lte": end_date},
         "metadata.device_id": {
             "$in": device_ids
