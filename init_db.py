@@ -65,7 +65,17 @@ try:
     db.create_collection(
         "FreeTier",
         timeseries={"timeField": "timestamp", "metaField": "metadata", "granularity": "minutes"},
-        expireAfterSeconds=8000000,
+        # expireAfterSeconds=8000000,
     )
 except pymongo.errors.CollectionInvalid:
     print("FreeTier collection Already exists, skipping ...")
+
+
+try:
+    db.create_collection(
+        "Migration",
+        # timeseries={"timeField": "timestamp", "metaField": "metadata", "granularity": "minutes"},
+        # expireAfterSeconds=8000000,
+    )
+except pymongo.errors.CollectionInvalid:
+    print("Migration collection Already exists, skipping ...")
