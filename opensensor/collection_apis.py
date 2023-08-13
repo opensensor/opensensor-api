@@ -200,18 +200,26 @@ def _get_project_projection(response_model: Type[T]):
 
 
 def get_uniform_sample_pipeline(
+    response_model: Type[T],
     data_field: str,
     device_ids: List[str],  # Update the type of the device_id parameter to List[str]
     device_name: str,
     start_date: datetime,
     end_date: datetime,
     resolution: int,
+    old_collections: bool,
 ):
     sampling_interval = timedelta(minutes=resolution)
     if start_date is None:
         start_date = datetime.utcnow() - timedelta(days=100)
     if end_date is None:
         end_date = datetime.utcnow()
+
+    # Determine the $project
+    if old_collections:
+        project_projection = _get_project_projection(response_model)
+    else:
+        project_projection = {data_field: True, "timestamp": True, "unit": f"{data_field}_unit"}
 
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
@@ -239,7 +247,7 @@ def get_uniform_sample_pipeline(
         },
         {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
-        {"$project": {data_field: True, "timestamp": True, "unit": f"{data_field}_unit"}},
+        {"$project": project_projection},
         {"$sort": {"timestamp": 1}},  # Sort by timestamp in ascending order
         # {"$count": "total"}
     ]
@@ -259,6 +267,7 @@ model_class_attributes = {v: k for k, v in model_classes.items()}
 
 
 def sample_and_paginate_collection(
+    response_model: Type[T],
     collection_name: str,
     data_field: str,
     device_id: str,
@@ -268,12 +277,20 @@ def sample_and_paginate_collection(
     page: int,
     size: int,
     unit: str,
+    old_collections: bool,
 ):
     api_keys, _ = get_api_keys_by_device_id(device_id)
     device_ids, target_device_name = reduce_api_keys_to_device_ids(api_keys, device_id)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
-        data_field, device_ids, target_device_name, start_date, end_date, resolution
+        response_model,
+        data_field,
+        device_ids,
+        target_device_name,
+        start_date,
+        end_date,
+        resolution,
+        old_collections,
     )
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
@@ -314,13 +331,17 @@ def create_historical_data_route(entity: Type[T]):
                 detail=f"User {fief_user} is not authorized to access device {device_id}",
             )
 
-        if migration_complete("FreeTier"):
-            user = get_user_from_fief_user(fief_user)
+        user = get_user_from_fief_user(fief_user)
+        if user:
             collection_name = user.collection_name
         else:
-            collection_name = model_class_attributes[entity]
+            collection_name = "FreeTier"
+        migration_finished = migration_complete(collection_name)
+        if not migration_finished:
+            collection_name = get_collection_name(entity)
 
         return sample_and_paginate_collection(
+            entity,
             collection_name,
             model_class_attributes[entity],
             device_id=device_id,
@@ -330,6 +351,7 @@ def create_historical_data_route(entity: Type[T]):
             page=page,
             size=size,
             unit=unit,
+            old_collections=not migration_finished,
         )
 
     return historical_data_route
