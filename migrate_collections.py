@@ -31,7 +31,7 @@ new_collections = {
     "Moisture": "moisture_readings",
 }
 
-db["GlobalDataMigration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
+db["Migration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
 
 # Determine the earliest and latest timestamps in your data
 earliest_timestamp = datetime.now()
@@ -112,6 +112,4 @@ while start_date <= latest_timestamp:
         start_date = end_date
 
 
-db["GlobalDataMigration"].update_one(
-    {"migration_name": "FreeTier"}, {"$set": {"migration_complete": True}}
-)
+db["Migration"].update_one({"migration_name": "FreeTier"}, {"$set": {"migration_complete": True}})
