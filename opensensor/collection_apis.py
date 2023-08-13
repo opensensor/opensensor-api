@@ -221,18 +221,20 @@ def get_uniform_sample_pipeline(
     else:
         project_projection = {data_field: True, "timestamp": True, "unit": f"{data_field}_unit"}
 
+    match = {
+        data_field: {"$exists": True},
+        "timestamp": {"$gte": start_date, "$lte": end_date},
+        "metadata.device_id": {
+            "$in": device_ids
+        },  # Use $in operator for matching any device_id in the list
+        "metadata.name": device_name,
+    }
+    if not old_collections:
+        match[data_field] = {"$exists": True}
+
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
-        {
-            "$match": {
-                data_field: {"$exists": True},
-                "timestamp": {"$gte": start_date, "$lte": end_date},
-                "metadata.device_id": {
-                    "$in": device_ids
-                },  # Use $in operator for matching any device_id in the list
-                "metadata.name": device_name,
-            }
-        },
+        {"$match": match},
         {
             "$addFields": {
                 "group": {
