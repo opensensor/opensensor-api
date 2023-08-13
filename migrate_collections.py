@@ -31,6 +31,8 @@ new_collections = {
     "Moisture": "moisture_readings",
 }
 
+db["GlobalDataMigration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
+
 # Determine the earliest and latest timestamps in your data
 earliest_timestamp = datetime.now()
 latest_timestamp = datetime.min
@@ -81,7 +83,8 @@ while start_date <= latest_timestamp:
                 if unit:
                     new_document[f"{new_collections[collection_name]}_unit"] = unit
 
-                # Merge with an existing document if it's within a reasonable time, otherwise add a new document to the buffer
+                # Merge with an existing document if it's within a reasonable time,
+                # otherwise add a new document to the buffer
                 for existing_timestamp in buffer.keys():
                     if abs(existing_timestamp - document["timestamp"]) <= reasonable_time:
                         buffer[existing_timestamp][new_collections[collection_name]] = document.get(
@@ -107,3 +110,8 @@ while start_date <= latest_timestamp:
 
         # Advance to the next time chunk
         start_date = end_date
+
+
+db["GlobalDataMigration"].update_one(
+    {"migration_name": "FreeTier"}, {"$set": {"migration_complete": True}}
+)

@@ -25,6 +25,8 @@ from opensensor.users import (
     auth,
     device_id_is_allowed_for_user,
     get_api_keys_by_device_id,
+    get_user_from_fief_user,
+    migration_complete,
     reduce_api_keys_to_device_ids,
     validate_device_metadata,
     validate_environment,
@@ -257,6 +259,7 @@ model_class_attributes = {v: k for k, v in model_classes.items()}
 
 
 def sample_and_paginate_collection(
+    collection_name: str,
     data_field: str,
     device_id: str,
     start_date: datetime,
@@ -275,7 +278,7 @@ def sample_and_paginate_collection(
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
     db = get_open_sensor_db()
-    collection = db["FreeTier"]
+    collection = db[collection_name]
     raw_data = list(collection.aggregate(pipeline))
     # Add UTC offset to timestamp field
     for item in raw_data:
@@ -294,7 +297,7 @@ def sample_and_paginate_collection(
 
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
-        user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
+        fief_user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
         device_id: str = Path(
             title="The ID of the device chain for which to retrieve historical data."
         ),
@@ -305,13 +308,20 @@ def create_historical_data_route(entity: Type[T]):
         size: int = Query(50, ge=1, le=1000, description="Page size"),
         unit: str | None = None,
     ) -> Page[T]:
-        if not device_id_is_allowed_for_user(device_id, user=user):
+        if not device_id_is_allowed_for_user(device_id, user=fief_user):
             raise HTTPException(
                 status_code=403,
-                detail=f"User {user} is not authorized to access device {device_id}",
+                detail=f"User {fief_user} is not authorized to access device {device_id}",
             )
 
+        if migration_complete("FreeTier"):
+            user = get_user_from_fief_user(fief_user)
+            collection_name = user.collection_name
+        else:
+            collection_name = model_class_attributes[entity]
+
         return sample_and_paginate_collection(
+            collection_name,
             model_class_attributes[entity],
             device_id=device_id,
             start_date=start_date,
