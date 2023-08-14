@@ -14,7 +14,9 @@ db = get_open_sensor_db()
 # List of all collections/models to migrate
 collections_to_migrate = ["Temperature", "Humidity", "Pressure", "Lux", "CO2", "PH", "Moisture"]
 
-db["Migration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
+migration = db.Migration.find_one({"migration_name": "FreeTier"})
+if not migration:
+    db["Migration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
 
 # Determine the earliest and latest timestamps in your data
 earliest_timestamp = datetime.now()

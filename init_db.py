@@ -77,5 +77,7 @@ try:
         # timeseries={"timeField": "timestamp", "metaField": "metadata", "granularity": "minutes"},
         # expireAfterSeconds=8000000,
     )
+    db.Migration.createIndex({"migration_name": 1}, {"unique": True})
+
 except pymongo.errors.CollectionInvalid:
     print("Migration collection Already exists, skipping ...")
