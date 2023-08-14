@@ -11,90 +11,68 @@ from opensensor.db import get_open_sensor_db
 # Access the database
 db = get_open_sensor_db()
 
-# List of all collections/models to migrate
 collections_to_migrate = ["Temperature", "Humidity", "Pressure", "Lux", "CO2", "PH", "Moisture"]
 
 migration = db.Migration.find_one({"migration_name": "FreeTier"})
 if not migration:
     db["Migration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
 
-# Determine the earliest and latest timestamps in your data
 earliest_timestamp = datetime.now()
-latest_timestamp = datetime.min
 
 for collection_name in collections_to_migrate:
     collection = db[collection_name]
     earliest_document = collection.find_one(sort=[("timestamp", ASCENDING)])
-    latest_document = collection.find_one(sort=[("timestamp", -1)])
     if earliest_document and earliest_document["timestamp"] < earliest_timestamp:
         earliest_timestamp = earliest_document["timestamp"]
-    if latest_document and latest_document["timestamp"] > latest_timestamp:
-        latest_timestamp = latest_document["timestamp"]
 
-# Migrate data in chunks, e.g., one week at a time
 start_date = earliest_timestamp
 one_week = timedelta(weeks=1)
 
-while start_date <= latest_timestamp:
+while True:
     end_date = start_date + one_week
-    all_documents = []
+    buffer = {}
+    has_data = False  # Flag to check if data exists for the current chunk
 
-    # Define a "reasonable" time window
-    reasonable_time = timedelta(seconds=3)
+    for collection_name in collections_to_migrate:
+        collection = db[collection_name]
+        for document in collection.find({"timestamp": {"$gte": start_date, "$lt": end_date}}):
+            has_data = True  # Data exists for this chunk
 
-    # Migrate data in chunks
-    start_date = earliest_timestamp
+            unit = document["metadata"].get("unit")
+            new_document = {
+                "metadata": {
+                    "device_id": document["metadata"]["device_id"],
+                    "name": document["metadata"].get("name"),
+                    "user_id": document.get("user_id"),
+                },
+                new_collections[collection_name]: document.get(old_collections[collection_name]),
+                "timestamp": document["timestamp"],
+            }
+            if unit:
+                new_document[f"{new_collections[collection_name]}_unit"] = unit
 
-    while start_date <= latest_timestamp:
-        end_date = start_date + one_week
-        buffer = {}  # We'll store the records for the current time window here
-
-        for collection_name in collections_to_migrate:
-            collection = db[collection_name]
-            for document in collection.find({"timestamp": {"$gte": start_date, "$lt": end_date}}):
-                # Convert to the FreeTier model
-                unit = document["metadata"].get("unit")
-                new_document = {
-                    "metadata": {
-                        "device_id": document["metadata"]["device_id"],
-                        "name": document["metadata"].get("name"),
-                        "user_id": document.get("user_id"),
-                    },
-                    new_collections[collection_name]: document.get(
+            for existing_timestamp in buffer.keys():
+                if abs(existing_timestamp - document["timestamp"]) <= timedelta(seconds=3):
+                    buffer[existing_timestamp][new_collections[collection_name]] = document.get(
                         old_collections[collection_name]
-                    ),
-                    "timestamp": document["timestamp"],
-                }
-                if unit:
-                    new_document[f"{new_collections[collection_name]}_unit"] = unit
+                    )
+                    if unit:
+                        buffer[existing_timestamp][
+                            f"{new_collections[collection_name]}_unit"
+                        ] = unit
+                    break
+            else:
+                buffer[document["timestamp"]] = new_document
 
-                # Merge with an existing document if it's within a reasonable time,
-                # otherwise add a new document to the buffer
-                for existing_timestamp in buffer.keys():
-                    if abs(existing_timestamp - document["timestamp"]) <= reasonable_time:
-                        buffer[existing_timestamp][new_collections[collection_name]] = document.get(
-                            old_collections[collection_name]
-                        )
-                        if unit:
-                            buffer[existing_timestamp][
-                                f"{new_collections[collection_name]}_unit"
-                            ] = unit
-                        break
-                else:
-                    buffer[document["timestamp"]] = new_document
+    if not has_data:  # If no data for the current chunk, stop the loop
+        break
 
-        # Sort all documents by timestamp
-        all_documents = sorted(buffer.values(), key=itemgetter("timestamp"))
+    all_documents = sorted(buffer.values(), key=itemgetter("timestamp"))
+    free_tier_collection = db["FreeTier"]
 
-        # Access the destination collection
-        free_tier_collection = db["FreeTier"]
+    for document in all_documents:
+        free_tier_collection.insert_one(document)
 
-        # Insert all documents into the new collection, in sorted order
-        for document in all_documents:
-            free_tier_collection.insert_one(document)
-
-        # Advance to the next time chunk
-        start_date = end_date
-
+    start_date = end_date  # Move to the next chunk
 
 db["Migration"].update_one({"migration_name": "FreeTier"}, {"$set": {"migration_complete": True}})
