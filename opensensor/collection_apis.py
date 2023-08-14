@@ -115,7 +115,7 @@ def _record_data_to_ts_collection(
                     if key == "unit":
                         doc_to_insert[column_name + "_unit"] = value
                     else:
-                        doc_to_insert[column_name] = value
+                        doc_to_insert[column_name] = str(value)
 
     # Insert the document into the collection
     collection.insert_one(doc_to_insert)
