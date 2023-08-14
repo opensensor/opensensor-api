@@ -40,7 +40,7 @@ old_collections = {
     "Pressure": "pressure",
     "Lux": "percent",
     "CO2": "ppm",
-    "PH": "pH",
+    "pH": "pH",
     "Moisture": "readings",
 }
 
@@ -50,7 +50,7 @@ new_collections = {
     "Pressure": "pressure",
     "Lux": "lux",
     "CO2": "ppm_CO2",
-    "PH": "pH",
+    "pH": "pH",
     "Moisture": "moisture_readings",
 }
 
