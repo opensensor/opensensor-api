@@ -3,6 +3,8 @@ from operator import itemgetter
 
 from pymongo import ASCENDING
 
+from opensensor.collection_apis import new_collections, old_collections
+
 # Create a MongoDB client
 from opensensor.db import get_open_sensor_db
 
@@ -11,25 +13,6 @@ db = get_open_sensor_db()
 
 # List of all collections/models to migrate
 collections_to_migrate = ["Temperature", "Humidity", "Pressure", "Lux", "CO2", "PH", "Moisture"]
-old_collections = {
-    "Temperature": "temp",
-    "Humidity": "rh",
-    "Pressure": "pressure",
-    "Lux": "percent",
-    "CO2": "ppm",
-    "PH": "pH",
-    "Moisture": "readings",
-}
-
-new_collections = {
-    "Temperature": "temp",
-    "Humidity": "rh",
-    "Pressure": "pressure",
-    "Lux": "lux",
-    "CO2": "ppm_CO2",
-    "PH": "pH",
-    "Moisture": "moisture_readings",
-}
 
 db["Migration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
 

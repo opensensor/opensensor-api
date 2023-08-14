@@ -35,6 +35,16 @@ from opensensor.utils.units import convert_temperature
 
 T = TypeVar("T", bound=BaseModel)
 
+old_collections = {
+    "Temperature": "temp",
+    "Humidity": "rh",
+    "Pressure": "pressure",
+    "Lux": "percent",
+    "CO2": "ppm",
+    "PH": "pH",
+    "Moisture": "readings",
+}
+
 new_collections = {
     "Temperature": "temp",
     "Humidity": "rh",
@@ -195,7 +205,7 @@ def get_collection_name(response_model: Type[T]):
     return response_model.__name__
 
 
-def _get_project_projection(response_model: Type[T]):
+def _get_old_project_projection(response_model: Type[T]):
     project_projection = {
         "_id": False,
     }
@@ -206,6 +216,22 @@ def _get_project_projection(response_model: Type[T]):
             project_projection["unit"] = "$metadata.unit"
         else:
             project_projection[field_name] = f"${field_name}"
+    return project_projection
+
+
+def _get_project_projection(response_model: Type[T]):
+    old_name = get_collection_name(response_model)
+    new_collection_name = new_collections[old_name]
+    project_projection = {
+        "_id": False,
+    }
+    for field_name, _ in response_model.__fields__.items():
+        if field_name == "timestamp":
+            project_projection["timestamp"] = "$timestamp"
+        if field_name == "unit":
+            project_projection[f"{new_collection_name}_unit"] = "$metadata.unit"
+        else:
+            project_projection[field_name] = f"${new_collection_name}"
     return project_projection
 
 
@@ -225,14 +251,6 @@ def get_uniform_sample_pipeline(
     if end_date is None:
         end_date = datetime.utcnow()
 
-    # Determine the $project
-    if old_collections:
-        project_projection = _get_project_projection(response_model)
-    else:
-        old_name = get_collection_name(response_model)
-        new_collection_name = new_collections[old_name]
-        project_projection = {data_field: f"${new_collection_name}", "timestamp": "$timestamp"}
-
     match_clause = {
         "timestamp": {"$gte": start_date, "$lte": end_date},
         "metadata.device_id": {
@@ -240,7 +258,14 @@ def get_uniform_sample_pipeline(
         },  # Use $in operator for matching any device_id in the list
         "metadata.name": device_name,
     }
-    if not old_collections:
+
+    # Determine the $project
+    if old_collections:
+        project_projection = _get_old_project_projection(response_model)
+    else:
+        old_name = get_collection_name(response_model)
+        new_collection_name = new_collections[old_name]
+        project_projection = _get_project_projection(response_model)
         match_clause[new_collection_name] = {"$exists": True}
 
     # Query a uniform sample of documents within the timestamp range
