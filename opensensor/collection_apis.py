@@ -150,8 +150,8 @@ def _get_project_projection(response_model: Type[T]):
     for field_name, _ in response_model.__fields__.items():
         if field_name == "timestamp":
             project_projection["timestamp"] = "$timestamp"
-        if field_name == "unit":
-            project_projection[f"{new_collection_name}_unit"] = "$metadata.unit"
+        elif field_name == "unit":
+            project_projection["unit"] = f"${new_collection_name}_unit"
         else:
             project_projection[field_name] = f"${new_collection_name}"
     return project_projection
@@ -256,8 +256,7 @@ def sample_and_paginate_collection(
     raw_data = list(collection.aggregate(pipeline))
     # Add UTC offset to timestamp field
     for item in raw_data:
-        item_datetime = datetime.fromisoformat(item["timestamp"])
-        item["timestamp"] = item_datetime.replace(tzinfo=timezone.utc).isoformat()
+        item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
     data_field = model_class_attributes[response_model]
     model_class = model_classes[data_field]
     data = [model_class(**item) for item in raw_data]
