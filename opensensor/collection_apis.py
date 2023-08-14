@@ -28,7 +28,6 @@ from opensensor.users import (
     get_user_from_fief_user,
     migration_complete,
     reduce_api_keys_to_device_ids,
-    validate_device_metadata,
     validate_environment,
 )
 from opensensor.utils.units import convert_temperature
@@ -122,83 +121,6 @@ def _record_data_to_ts_collection(
     collection.insert_one(doc_to_insert)
 
 
-@router.post("/rh/", response_model=Humidity)
-async def record_humidity(
-    device_metadata: DeviceMetadata,
-    rh: Humidity,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Humidity, "rh", device_metadata, rh)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/temp/", response_model=Temperature)
-async def record_temperature(
-    device_metadata: DeviceMetadata,
-    temp: Temperature,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Temperature, "temp", device_metadata, temp)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/pressure/", response_model=Pressure)
-async def record_pressure(
-    device_metadata: DeviceMetadata,
-    pressure: Pressure,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Pressure, "pressure", device_metadata, pressure)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/lux/", response_model=Lux)
-async def record_lux(
-    device_metadata: DeviceMetadata,
-    lux: Lux,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Lux, "percent", device_metadata, lux)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/CO2/", response_model=CO2)
-async def record_co2(
-    device_metadata: DeviceMetadata,
-    co2: CO2,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.CO2, "ppm", device_metadata, co2)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/moisture/", response_model=Moisture)
-async def record_moisture_readings(
-    device_metadata: DeviceMetadata,
-    moisture: Moisture,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Moisture, "readings", device_metadata, moisture)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/pH/", response_model=PH)
-async def record_ph(
-    device_metadata: DeviceMetadata,
-    ph: PH,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, ph, user)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
 def get_collection_name(response_model: Type[T]):
     if hasattr(response_model, "collection_name"):
         return response_model.collection_name()
@@ -237,7 +159,6 @@ def _get_project_projection(response_model: Type[T]):
 
 def get_uniform_sample_pipeline(
     response_model: Type[T],
-    data_field: str,
     device_ids: List[str],  # Update the type of the device_id parameter to List[str]
     device_name: str,
     start_date: datetime,
@@ -307,7 +228,6 @@ model_class_attributes = {v: k for k, v in model_classes.items()}
 def sample_and_paginate_collection(
     response_model: Type[T],
     collection_name: str,
-    data_field: str,
     device_id: str,
     start_date: datetime,
     end_date: datetime,
@@ -322,7 +242,6 @@ def sample_and_paginate_collection(
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
         response_model,
-        data_field,
         device_ids,
         target_device_name,
         start_date,
@@ -339,6 +258,7 @@ def sample_and_paginate_collection(
     for item in raw_data:
         item_datetime = datetime.fromisoformat(item["timestamp"])
         item["timestamp"] = item_datetime.replace(tzinfo=timezone.utc).isoformat()
+    data_field = model_class_attributes[response_model]
     model_class = model_classes[data_field]
     data = [model_class(**item) for item in raw_data]
     if data_field == "temp" and unit:
@@ -370,6 +290,7 @@ def create_historical_data_route(entity: Type[T]):
                 detail=f"User {fief_user} is not authorized to access device {device_id}",
             )
 
+        # TODO - Refactor this after migration to FreeTier complete
         user = get_user_from_fief_user(fief_user)
         if user:
             collection_name = user.collection_name
@@ -382,7 +303,6 @@ def create_historical_data_route(entity: Type[T]):
         return sample_and_paginate_collection(
             entity,
             collection_name,
-            model_class_attributes[entity],
             device_id=device_id,
             start_date=start_date,
             end_date=end_date,
@@ -431,7 +351,17 @@ async def record_environment(
     user: User = Depends(validate_environment),
 ):
     db = get_open_sensor_db()
-    _record_data_to_ts_collection(db.FreeTier, environment, user)
+
+    # TODO - Refactor this after migration to FreeTier complete
+    if user:
+        collection_name = user.collection_name
+    else:
+        collection_name = "FreeTier"
+    migration_finished = migration_complete(collection_name)
+    if migration_finished:
+        _record_data_to_ts_collection(db.FreeTier, environment, user)
+        return Response(status_code=status.HTTP_201_CREATED)
+
     # Legacy to be removed once everything converts over to the new collection
     if environment.temp:
         _record_data_point_to_ts_collection(
