@@ -35,6 +35,16 @@ from opensensor.utils.units import convert_temperature
 
 T = TypeVar("T", bound=BaseModel)
 
+new_collections = {
+    "Temperature": "temp",
+    "Humidity": "rh",
+    "Pressure": "pressure",
+    "Lux": "lux",
+    "CO2": "ppm_CO2",
+    "PH": "pH",
+    "Moisture": "moisture_readings",
+}
+
 
 class Params(BaseParams):
     size: int = Query(50, ge=1, le=1000, description="Page size")
@@ -219,9 +229,11 @@ def get_uniform_sample_pipeline(
     if old_collections:
         project_projection = _get_project_projection(response_model)
     else:
-        project_projection = {data_field: True, "timestamp": True, "unit": f"{data_field}_unit"}
+        old_name = get_collection_name(response_model)
+        new_collection_name = new_collections[old_name]
+        project_projection = {data_field: f"${new_collection_name}", "timestamp": "$timestamp"}
 
-    match = {
+    match_clause = {
         "timestamp": {"$gte": start_date, "$lte": end_date},
         "metadata.device_id": {
             "$in": device_ids
@@ -229,11 +241,11 @@ def get_uniform_sample_pipeline(
         "metadata.name": device_name,
     }
     if not old_collections:
-        match[data_field] = {"$exists": True}
+        match_clause[new_collection_name] = {"$exists": True}
 
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
-        {"$match": match},
+        {"$match": match_clause},
         {
             "$addFields": {
                 "group": {
@@ -261,7 +273,7 @@ model_classes = {
     "pressure": Pressure,
     "lux": Lux,
     "co2": CO2,
-    "moisture": Moisture,
+    "readings": Moisture,
     "pH": PH,
 }
 model_class_attributes = {v: k for k, v in model_classes.items()}
