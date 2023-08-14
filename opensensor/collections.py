@@ -31,7 +31,7 @@ class Pressure(TimestampModel):
 
 
 class Lux(TimestampModel):
-    lux: Decimal
+    percent: Decimal
 
 
 class CO2(TimestampModel):
