@@ -8,7 +8,7 @@ from uuid import UUID
 from bson import Binary
 from fastapi import HTTPException, Request, Response, status
 from fastapi.security import APIKeyCookie, OAuth2AuthorizationCodeBearer
-from fief_client import FiefAsync
+from fief_client import FiefAsync, FiefUserInfo
 from fief_client.integrations.fastapi import FiefAuth
 from pydantic import BaseModel, Field
 
@@ -85,6 +85,12 @@ class User(BaseModel):
     fief_user_id: Optional[UUID] = Field(None, alias="_id")
     api_keys: List[APIKey]
     commands_issued: List[Command] = []
+    collection_name: str = "FreeTier"
+
+
+class Migration(BaseModel):
+    migration_name: str
+    migration_complete: bool = False
 
 
 def mask_key(key: str) -> str:
@@ -109,6 +115,25 @@ def get_or_create_user(user_id: UUID) -> User:
         user.fief_user_id = user_id
 
     return user
+
+
+def get_user_from_fief_user(fief_user: FiefUserInfo) -> User:
+    if fief_user:
+        db = get_open_sensor_db()
+        users_db = db["Users"]
+        fief_user_id = fief_user["sub"]
+        binary_uuid = Binary.from_uuid(UUID(fief_user_id))
+        user = users_db.find_one({"_id": binary_uuid})
+        return user
+
+
+def migration_complete(migration_name: str) -> bool:
+    db = get_open_sensor_db()
+    migration = db.Migration.find_one({"migration_name": migration_name})
+    if migration:
+        return migration.get("migration_complete", False)
+    else:
+        return False
 
 
 def filter_api_keys_by_device_name(api_keys: List[APIKey], target_device_name: str) -> List[str]:

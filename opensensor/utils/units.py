@@ -21,4 +21,3 @@ def convert_temperature(temp: Temperature, desired_unit: str) -> Temperature:
     else:
         raise ValueError(f"Unsupported temperature unit conversion: {temp.unit} to {desired_unit}")
     temp.unit = desired_unit
-    return temp
