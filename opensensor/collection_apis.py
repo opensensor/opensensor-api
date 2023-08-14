@@ -337,7 +337,8 @@ def sample_and_paginate_collection(
     raw_data = list(collection.aggregate(pipeline))
     # Add UTC offset to timestamp field
     for item in raw_data:
-        item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
+        item_datetime = datetime.fromisoformat(item["timestamp"])
+        item["timestamp"] = item_datetime.replace(tzinfo=timezone.utc).isoformat()
     model_class = model_classes[data_field]
     data = [model_class(**item) for item in raw_data]
     if data_field == "temp" and unit:
