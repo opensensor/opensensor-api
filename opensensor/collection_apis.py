@@ -8,7 +8,6 @@ from fastapi_pagination.default import Params as BaseParams
 from fief_client import FiefUserInfo
 from pydantic import BaseModel
 
-from opensensor.app import app
 from opensensor.collections import (
     CO2,
     PH,
@@ -26,13 +25,34 @@ from opensensor.users import (
     auth,
     device_id_is_allowed_for_user,
     get_api_keys_by_device_id,
+    get_user_from_fief_user,
+    migration_complete,
     reduce_api_keys_to_device_ids,
-    validate_device_metadata,
     validate_environment,
 )
 from opensensor.utils.units import convert_temperature
 
 T = TypeVar("T", bound=BaseModel)
+
+old_collections = {
+    "Temperature": "temp",
+    "Humidity": "rh",
+    "Pressure": "pressure",
+    "Lux": "percent",
+    "CO2": "ppm",
+    "PH": "pH",
+    "Moisture": "readings",
+}
+
+new_collections = {
+    "Temperature": "temp",
+    "Humidity": "rh",
+    "Pressure": "pressure",
+    "Lux": "lux",
+    "CO2": "ppm_CO2",
+    "PH": "pH",
+    "Moisture": "moisture_readings",
+}
 
 
 class Params(BaseParams):
@@ -67,81 +87,38 @@ def _record_data_point_to_ts_collection(
     collection.insert_one(data)
 
 
-@router.post("/rh/", response_model=Humidity)
-async def record_humidity(
-    device_metadata: DeviceMetadata,
-    rh: Humidity,
-    user: User = Depends(validate_device_metadata),
+def _record_data_to_ts_collection(
+    collection,
+    environment: Environment,
+    user: User = None,
 ):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Humidity, "rh", device_metadata, rh)
-    return Response(status_code=status.HTTP_201_CREATED)
+    metadata = environment.device_metadata.dict()
+    metadata.pop("api_key", None)
+    if user:
+        metadata["user_id"] = Binary.from_uuid(user.fief_user_id)
 
+    # Start building the document to insert
+    doc_to_insert = {
+        "timestamp": datetime.utcnow(),
+        "metadata": metadata,
+    }
 
-@router.post("/temp/", response_model=Temperature)
-async def record_temperature(
-    device_metadata: DeviceMetadata,
-    temp: Temperature,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Temperature, "temp", device_metadata, temp)
-    return Response(status_code=status.HTTP_201_CREATED)
+    # Add each data point to the document
+    env_dict = environment.dict()
+    for column_name, model_instance in env_dict.items():
+        if model_instance is not None and column_name != "device_metadata":
+            # We go with the current time because time series collections are restricted this way
+            model_instance.pop("timestamp", None)
 
+            for key, value in model_instance.items():
+                if value is not None:
+                    if key == "unit":
+                        doc_to_insert[column_name + "_unit"] = value
+                    else:
+                        doc_to_insert[column_name] = str(value)
 
-@router.post("/pressure/", response_model=Pressure)
-async def record_pressure(
-    device_metadata: DeviceMetadata,
-    pressure: Pressure,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Pressure, "pressure", device_metadata, pressure)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/lux/", response_model=Lux)
-async def record_lux(
-    device_metadata: DeviceMetadata,
-    lux: Lux,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Lux, "percent", device_metadata, lux)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/CO2/", response_model=CO2)
-async def record_co2(
-    device_metadata: DeviceMetadata,
-    co2: CO2,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.CO2, "ppm", device_metadata, co2)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@router.post("/moisture/", response_model=Moisture)
-async def record_moisture_readings(
-    device_metadata: DeviceMetadata,
-    moisture: Moisture,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.Moisture, "readings", device_metadata, moisture)
-    return Response(status_code=status.HTTP_201_CREATED)
-
-
-@app.post("/pH/", response_model=PH)
-async def record_ph(
-    device_metadata: DeviceMetadata,
-    ph: PH,
-    user: User = Depends(validate_device_metadata),
-):
-    db = get_open_sensor_db()
-    _record_data_point_to_ts_collection(db.pH, "pH", device_metadata, ph, user)
-    return Response(status_code=status.HTTP_201_CREATED)
+    # Insert the document into the collection
+    collection.insert_one(doc_to_insert)
 
 
 def get_collection_name(response_model: Type[T]):
@@ -150,7 +127,7 @@ def get_collection_name(response_model: Type[T]):
     return response_model.__name__
 
 
-def _get_project_projection(response_model: Type[T]):
+def _get_old_project_projection(response_model: Type[T]):
     project_projection = {
         "_id": False,
     }
@@ -164,6 +141,22 @@ def _get_project_projection(response_model: Type[T]):
     return project_projection
 
 
+def _get_project_projection(response_model: Type[T]):
+    old_name = get_collection_name(response_model)
+    new_collection_name = new_collections[old_name]
+    project_projection = {
+        "_id": False,
+    }
+    for field_name, _ in response_model.__fields__.items():
+        if field_name == "timestamp":
+            project_projection["timestamp"] = "$timestamp"
+        elif field_name == "unit":
+            project_projection["unit"] = f"${new_collection_name}_unit"
+        else:
+            project_projection[field_name] = f"${new_collection_name}"
+    return project_projection
+
+
 def get_uniform_sample_pipeline(
     response_model: Type[T],
     device_ids: List[str],  # Update the type of the device_id parameter to List[str]
@@ -171,6 +164,7 @@ def get_uniform_sample_pipeline(
     start_date: datetime,
     end_date: datetime,
     resolution: int,
+    old_collections: bool,
 ):
     sampling_interval = timedelta(minutes=resolution)
     if start_date is None:
@@ -178,17 +172,26 @@ def get_uniform_sample_pipeline(
     if end_date is None:
         end_date = datetime.utcnow()
 
+    match_clause = {
+        "timestamp": {"$gte": start_date, "$lte": end_date},
+        "metadata.device_id": {
+            "$in": device_ids
+        },  # Use $in operator for matching any device_id in the list
+        "metadata.name": device_name,
+    }
+
+    # Determine the $project
+    if old_collections:
+        project_projection = _get_old_project_projection(response_model)
+    else:
+        old_name = get_collection_name(response_model)
+        new_collection_name = new_collections[old_name]
+        project_projection = _get_project_projection(response_model)
+        match_clause[new_collection_name] = {"$exists": True}
+
     # Query a uniform sample of documents within the timestamp range
     pipeline = [
-        {
-            "$match": {
-                "timestamp": {"$gte": start_date, "$lte": end_date},
-                "metadata.device_id": {
-                    "$in": device_ids
-                },  # Use $in operator for matching any device_id in the list
-                "metadata.name": device_name,
-            }
-        },
+        {"$match": match_clause},
         {
             "$addFields": {
                 "group": {
@@ -203,41 +206,63 @@ def get_uniform_sample_pipeline(
         },
         {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
-        {"$project": _get_project_projection(response_model)},
+        {"$project": project_projection},
         {"$sort": {"timestamp": 1}},  # Sort by timestamp in ascending order
         # {"$count": "total"}
     ]
     return pipeline
 
 
+model_classes = {
+    "temp": Temperature,
+    "rh": Humidity,
+    "pressure": Pressure,
+    "lux": Lux,
+    "co2": CO2,
+    "readings": Moisture,
+    "pH": PH,
+}
+model_class_attributes = {v: k for k, v in model_classes.items()}
+
+
 def sample_and_paginate_collection(
     response_model: Type[T],
-    device_id: str,  # Also accepts a common device id (device_id|device_name)
+    collection_name: str,
+    device_id: str,
     start_date: datetime,
     end_date: datetime,
     resolution: int,
     page: int,
     size: int,
     unit: str,
+    old_collections: bool,
 ):
     api_keys, _ = get_api_keys_by_device_id(device_id)
     device_ids, target_device_name = reduce_api_keys_to_device_ids(api_keys, device_id)
     offset = (page - 1) * size
     pipeline = get_uniform_sample_pipeline(
-        response_model, device_ids, target_device_name, start_date, end_date, resolution
+        response_model,
+        device_ids,
+        target_device_name,
+        start_date,
+        end_date,
+        resolution,
+        old_collections,
     )
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
     db = get_open_sensor_db()
-    collection = db[get_collection_name(response_model)]
+    collection = db[collection_name]
     raw_data = list(collection.aggregate(pipeline))
     # Add UTC offset to timestamp field
     for item in raw_data:
         item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
-    data = [response_model(**item) for item in raw_data]
-    if response_model == Temperature and unit:
-        for t in data:
-            convert_temperature(t, unit)
+    data_field = model_class_attributes[response_model]
+    model_class = model_classes[data_field]
+    data = [model_class(**item) for item in raw_data]
+    if data_field == "temp" and unit:
+        for item in data:
+            convert_temperature(item, unit)
     # Re-run for total page count
     pipeline.append({"$count": "total"})
     data_count = list(collection.aggregate(pipeline))
@@ -247,7 +272,7 @@ def sample_and_paginate_collection(
 
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
-        user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
+        fief_user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
         device_id: str = Path(
             title="The ID of the device chain for which to retrieve historical data."
         ),
@@ -258,14 +283,25 @@ def create_historical_data_route(entity: Type[T]):
         size: int = Query(50, ge=1, le=1000, description="Page size"),
         unit: str | None = None,
     ) -> Page[T]:
-        if not device_id_is_allowed_for_user(device_id, user=user):
+        if not device_id_is_allowed_for_user(device_id, user=fief_user):
             raise HTTPException(
                 status_code=403,
-                detail=f"User {user} is not authorized to access device {device_id}",
+                detail=f"User {fief_user} is not authorized to access device {device_id}",
             )
+
+        # TODO - Refactor this after migration to FreeTier complete
+        user = get_user_from_fief_user(fief_user)
+        if user:
+            collection_name = user.collection_name
+        else:
+            collection_name = "FreeTier"
+        migration_finished = migration_complete(collection_name)
+        if not migration_finished:
+            collection_name = get_collection_name(entity)
 
         return sample_and_paginate_collection(
             entity,
+            collection_name,
             device_id=device_id,
             start_date=start_date,
             end_date=end_date,
@@ -273,6 +309,7 @@ def create_historical_data_route(entity: Type[T]):
             page=page,
             size=size,
             unit=unit,
+            old_collections=not migration_finished,
         )
 
     return historical_data_route
@@ -313,6 +350,18 @@ async def record_environment(
     user: User = Depends(validate_environment),
 ):
     db = get_open_sensor_db()
+
+    # TODO - Refactor this after migration to FreeTier complete
+    if user:
+        collection_name = user.collection_name
+    else:
+        collection_name = "FreeTier"
+    migration_finished = migration_complete(collection_name)
+    if migration_finished:
+        _record_data_to_ts_collection(db.FreeTier, environment, user)
+        return Response(status_code=status.HTTP_201_CREATED)
+
+    # Legacy to be removed once everything converts over to the new collection
     if environment.temp:
         _record_data_point_to_ts_collection(
             db.Temperature, "temp", environment.device_metadata, environment.temp, user
