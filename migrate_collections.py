@@ -18,26 +18,27 @@ if not migration:
     db["Migration"].insert_one({"migration_name": "FreeTier", "migration_complete": False})
 
 earliest_timestamp = datetime.now()
+latest_timestamp = datetime.min
 
 for collection_name in collections_to_migrate:
     collection = db[collection_name]
     earliest_document = collection.find_one(sort=[("timestamp", ASCENDING)])
+    latest_document = collection.find_one(sort=[("timestamp", -1)])
     if earliest_document and earliest_document["timestamp"] < earliest_timestamp:
         earliest_timestamp = earliest_document["timestamp"]
+    if latest_document and latest_document["timestamp"] > latest_timestamp:
+        latest_timestamp = latest_document["timestamp"]
 
 start_date = earliest_timestamp
 one_week = timedelta(weeks=1)
 
-while True:
+while start_date <= latest_timestamp:
     end_date = start_date + one_week
     buffer = {}
-    has_data = False  # Flag to check if data exists for the current chunk
 
     for collection_name in collections_to_migrate:
         collection = db[collection_name]
         for document in collection.find({"timestamp": {"$gte": start_date, "$lt": end_date}}):
-            has_data = True  # Data exists for this chunk
-
             unit = document["metadata"].get("unit")
             new_document = {
                 "metadata": {
@@ -64,15 +65,21 @@ while True:
             else:
                 buffer[document["timestamp"]] = new_document
 
-    if not has_data:  # If no data for the current chunk, stop the loop
-        break
-
     all_documents = sorted(buffer.values(), key=itemgetter("timestamp"))
     free_tier_collection = db["FreeTier"]
-
     for document in all_documents:
         free_tier_collection.insert_one(document)
 
-    start_date = end_date  # Move to the next chunk
+    # Update the latest_timestamp after processing this chunk, to check if new data has been added.
+    new_latest_timestamp = datetime.min
+    for collection_name in collections_to_migrate:
+        collection = db[collection_name]
+        latest_document = collection.find_one(sort=[("timestamp", -1)])
+        if latest_document and latest_document["timestamp"] > new_latest_timestamp:
+            new_latest_timestamp = latest_document["timestamp"]
 
-db["Migration"].update_one({"migration_name": "FreeTier"}, {"$set": {"migration_complete": True}})
+    # If there are new records added, the while loop will continue until there are no more records.
+    latest_timestamp = new_latest_timestamp
+    start_date = end_date
+
+# db["Migration"].update_one({"migration_name": "FreeTier"}, {"$set": {"migration_complete": True}})
