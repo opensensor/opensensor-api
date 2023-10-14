@@ -18,6 +18,8 @@ spec:
           - www.opensensor.io
           - api.opensensor.io
           - growmax.opensensor.io
+          - solar.opensensor.io
+          - solar-api.opensensor.io
       secretName: opensensor-tls
   rules:
   - host: opensensor.io
@@ -58,5 +60,25 @@ spec:
           backend:
             service:
               name: opensensor-growmax
+              port:
+                number: 80
+  - host: solar.opensensor.io
+    http:
+      paths:
+        - pathType: Prefix
+          path: "/"
+          backend:
+            service:
+              name: opensensor-solar
+              port:
+                number: 80
+  - host: solar-api.opensensor.io
+    http:
+      paths:
+        - pathType: Prefix
+          path: "/"
+          backend:
+            service:
+              name: opensensor-solar-api
               port:
                 number: 80

@@ -11,3 +11,5 @@ spec:
   commonName: www.opensensor.io
   dnsNames:
     - opensensor.io
+    - api.opensensor.io
+    - solar.opensensor.io
