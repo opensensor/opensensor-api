@@ -54,6 +54,16 @@ new_collections = {
     "Moisture": "moisture_readings",
 }
 
+column_translation = {
+    "temp": "temp",
+    "rh": "rh",
+    "pressure": "pressure",
+    "percent": "lux",
+    "ppm": "ppm_CO2",
+    "pH": "pH",
+    "readings": "moisture_readings",
+}
+
 
 class Params(BaseParams):
     size: int = Query(50, ge=1, le=1000, description="Page size")
@@ -111,7 +121,7 @@ def _record_data_to_ts_collection(
             model_instance.pop("timestamp", None)
 
             # Translate to the combined collection field names
-            column_name = new_collections[model_instance.__class__.__name__]
+            column_name = column_translation[column_name]
 
             for key, value in model_instance.items():
                 if value is not None:
