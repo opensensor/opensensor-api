@@ -54,14 +54,14 @@ new_collections = {
     "Moisture": "moisture_readings",
 }
 
-column_translation = {
+environment_translation = {
     "temp": "temp",
     "rh": "rh",
     "pressure": "pressure",
-    "percent": "lux",
-    "ppm": "ppm_CO2",
+    "lux": "lux",
+    "co2": "ppm_CO2",
+    "moisture": "moisture_readings",
     "pH": "pH",
-    "readings": "moisture_readings",
 }
 
 
@@ -121,7 +121,7 @@ def _record_data_to_ts_collection(
             model_instance.pop("timestamp", None)
 
             # Translate to the combined collection field names
-            column_name = column_translation[column_name]
+            column_name = environment_translation[column_name]
 
             for key, value in model_instance.items():
                 if value is not None:
