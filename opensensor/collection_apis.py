@@ -110,6 +110,9 @@ def _record_data_to_ts_collection(
             # We go with the current time because time series collections are restricted this way
             model_instance.pop("timestamp", None)
 
+            # Translate to the combined collection field names
+            column_name = new_collections[get_collection_name(model_instance)]
+
             for key, value in model_instance.items():
                 if value is not None:
                     if key == "unit":
@@ -164,7 +167,7 @@ def get_uniform_sample_pipeline(
     start_date: datetime,
     end_date: datetime,
     resolution: int,
-    old_collections: bool,
+    old_collection: bool,
 ):
     sampling_interval = timedelta(minutes=resolution)
     if start_date is None:
@@ -181,7 +184,7 @@ def get_uniform_sample_pipeline(
     }
 
     # Determine the $project
-    if old_collections:
+    if old_collection:
         project_projection = _get_old_project_projection(response_model)
     else:
         old_name = get_collection_name(response_model)
@@ -235,7 +238,7 @@ def sample_and_paginate_collection(
     page: int,
     size: int,
     unit: str,
-    old_collections: bool,
+    old_collection: bool,
 ):
     api_keys, _ = get_api_keys_by_device_id(device_id)
     device_ids, target_device_name = reduce_api_keys_to_device_ids(api_keys, device_id)
@@ -247,7 +250,7 @@ def sample_and_paginate_collection(
         start_date,
         end_date,
         resolution,
-        old_collections,
+        old_collection,
     )
     pipeline.extend([{"$skip": offset}, {"$limit": size}])
 
@@ -309,7 +312,7 @@ def create_historical_data_route(entity: Type[T]):
             page=page,
             size=size,
             unit=unit,
-            old_collections=not migration_finished,
+            old_collection=not migration_finished,
         )
 
     return historical_data_route
