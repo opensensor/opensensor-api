@@ -124,6 +124,7 @@ def get_user_from_fief_user(fief_user: FiefUserInfo) -> User:
         fief_user_id = fief_user["sub"]
         binary_uuid = Binary.from_uuid(UUID(fief_user_id))
         user = users_db.find_one({"_id": binary_uuid})
+        user = User(**user)
         return user
 
 
