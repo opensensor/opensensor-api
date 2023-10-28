@@ -111,7 +111,7 @@ def _record_data_to_ts_collection(
             model_instance.pop("timestamp", None)
 
             # Translate to the combined collection field names
-            column_name = new_collections[get_collection_name(model_instance)]
+            column_name = new_collections[model_instance.__class__.__name__]
 
             for key, value in model_instance.items():
                 if value is not None:
