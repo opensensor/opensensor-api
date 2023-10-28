@@ -292,7 +292,7 @@ def create_historical_data_route(entity: Type[T]):
         # TODO - Refactor this after migration to FreeTier complete
         user = get_user_from_fief_user(fief_user)
         if user:
-            collection_name = user.collection_name
+            collection_name = user["collection_name"]
         else:
             collection_name = "FreeTier"
         migration_finished = migration_complete(collection_name)
