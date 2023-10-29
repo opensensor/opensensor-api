@@ -66,3 +66,13 @@ class Environment(BaseModel):
     co2: CO2 | None = None
     moisture: Moisture | None = None
     pH: PH | None = None
+
+
+class VPD(BaseModel):
+    """
+    VPD is a Computed Projection from other data points.
+    """
+
+    timestamp: datetime
+    vpd: float
+    unit: str
