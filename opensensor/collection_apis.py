@@ -267,9 +267,7 @@ def get_uniform_sample_pipeline(
     if end_date is None:
         end_date = datetime.utcnow()
     sampling_interval = timedelta(minutes=resolution)
-    match_clause = get_initial_match_clause(
-        device_ids, device_name, start_date, end_date, resolution
-    )
+    match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
 
     # Determine the $project
     old_name = get_collection_name(response_model)
