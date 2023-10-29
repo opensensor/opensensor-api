@@ -200,18 +200,6 @@ def get_vpd_pipeline(
     # The MongoDB aggregation pipeline for VPD calculation
     pipeline = [
         {"$match": match_clause},
-        {
-            "$addFields": {
-                "group": {
-                    "$floor": {
-                        "$divide": [
-                            {"$subtract": ["$timestamp", start_date]},
-                            sampling_interval.total_seconds() * 1000,
-                        ]
-                    }
-                }
-            }
-        },
         {"$addFields": {"tempAsFloat": {"$toDouble": "$temp"}}},
         {"$addFields": {"rhAsFloat": {"$toDouble": "$rh"}}},
         {
@@ -242,15 +230,23 @@ def get_vpd_pipeline(
             }
         },
         {
-            "$group": {
-                "_id": "$group",
-                "timestamp": {"$first": "$timestamp"},
-                "vpd": {"$avg": "$vpd"},
+            "$addFields": {
+                "group": {
+                    "$floor": {
+                        "$divide": [
+                            {"$subtract": ["$timestamp", start_date]},
+                            sampling_interval.total_seconds() * 1000,
+                        ]
+                    }
+                }
             }
         },
-        {"$project": project_projection},
         {"$sort": {"timestamp": 1}},
+        {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
+        {"$replaceRoot": {"newRoot": "$doc"}},
+        {"$project": project_projection},
     ]
+
     return pipeline
 
 
