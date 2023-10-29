@@ -241,6 +241,8 @@ def get_vpd_pipeline(
                 }
             }
         },
+        {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
+        {"$replaceRoot": {"newRoot": "$doc"}},
         {"$project": project_projection},
         {"$sort": {"timestamp": 1}},
     ]
