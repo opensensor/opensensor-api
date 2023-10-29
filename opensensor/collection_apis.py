@@ -191,6 +191,7 @@ def get_vpd_pipeline(
     match_clause = get_initial_match_clause(
         device_ids, device_name, start_date, end_date, resolution
     )
+    project_projection = _get_project_projection(VPD)
 
     # We ensure both temperature and humidity exist for the calculation of VPD
     match_clause["temp"] = {"$exists": True}
@@ -241,14 +242,7 @@ def get_vpd_pipeline(
                 "vpd": {"$multiply": ["$satvp", {"$subtract": [1, {"$divide": ["$rh", 100]}]}]}
             }
         },
-        {
-            "$project": {
-                "_id": False,
-                "timestamp": 1,
-                "vpd": 1,
-                "unit": "kPa",  # assuming kPa as the unit for VPD
-            }
-        },
+        {"$project": project_projection},
         {"$sort": {"timestamp": 1}},
     ]
     return pipeline
