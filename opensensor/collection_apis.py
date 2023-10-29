@@ -143,7 +143,7 @@ def get_collection_name(response_model: Type[T]):
 
 def _get_project_projection(response_model: Type[T]):
     old_name = get_collection_name(response_model)
-    new_collection_name = new_collections[old_name]
+    new_collection_name = new_collections.get(old_name, old_name)
     project_projection = {
         "_id": False,
     }
