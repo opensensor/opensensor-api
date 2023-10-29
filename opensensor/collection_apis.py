@@ -162,7 +162,6 @@ def get_initial_match_clause(
     device_name: str,
     start_date: datetime,
     end_date: datetime,
-    resolution: int,
 ):
     if start_date is None:
         start_date = datetime.utcnow() - timedelta(days=100)
@@ -188,9 +187,7 @@ def get_vpd_pipeline(
     resolution: int,
 ):
     sampling_interval = timedelta(minutes=resolution)
-    match_clause = get_initial_match_clause(
-        device_ids, device_name, start_date, end_date, resolution
-    )
+    match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
     project_projection = _get_project_projection(VPD)
 
     # We ensure both temperature and humidity exist for the calculation of VPD
@@ -210,14 +207,6 @@ def get_vpd_pipeline(
                         ]
                     }
                 }
-            }
-        },
-        {
-            "$group": {
-                "_id": "$group",
-                "temp": {"$avg": "$temp"},
-                "rh": {"$avg": "$rh"},
-                "timestamp": {"$first": "$timestamp"},
             }
         },
         {
