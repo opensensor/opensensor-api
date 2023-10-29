@@ -212,6 +212,7 @@ def get_vpd_pipeline(
             }
         },
         {"$addFields": {"tempAsFloat": {"$toDouble": "$temp"}}},
+        {"$addFields": {"rhAsFloat": {"$toDouble": "$rh"}}},
         {
             "$addFields": {
                 "satvp": {
@@ -231,7 +232,12 @@ def get_vpd_pipeline(
         },
         {
             "$addFields": {
-                "vpd": {"$multiply": ["$satvp", {"$subtract": [1, {"$divide": ["$rh", 100]}]}]}
+                "vpd": {
+                    "$multiply": [
+                        "$satvp",
+                        {"$subtract": [1.0, {"$divide": ["$rhAsFloat", 100.0]}]},
+                    ]
+                }
             }
         },
         {"$project": project_projection},
