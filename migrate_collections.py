@@ -18,9 +18,19 @@ start_date = earliest_timestamp
 one_day = timedelta(days=1)
 
 
-# Function to create a composite key
-def create_key(timestamp, metadata):
-    return f"{timestamp}_{metadata['device_id']}_{metadata.get('name', 'NA')}_{metadata.get('user_id', 'NA')}"
+TIME_WINDOW = timedelta(seconds=3)
+
+
+def find_nearby_key(timestamp, metadata):
+    for (key_time, key_device_id, key_name, key_user_id) in buffer.keys():
+        if (
+            key_device_id == metadata["device_id"]
+            and key_name == metadata.get("name", "NA")
+            and key_user_id == metadata.get("user_id", "NA")
+            and abs(key_time - timestamp) <= TIME_WINDOW
+        ):
+            return (key_time, key_device_id, key_name, key_user_id)
+    return None
 
 
 while start_date <= datetime(2023, 11, 10):
@@ -33,10 +43,19 @@ while start_date <= datetime(2023, 11, 10):
         collection = db[collection_name]
         for document in collection.find({"timestamp": {"$gte": start_date, "$lt": end_date}}):
             unit = document["metadata"].get("unit")
-            key = create_key(document["timestamp"], document["metadata"])
 
-            # This will check if a buffer entry exists for the given timestamp and metadata
-            # If it doesn't exist, it initializes a new dictionary for it
+            key = (
+                document["timestamp"],
+                document["metadata"]["device_id"],
+                document["metadata"].get("name", "NA"),
+                document["metadata"].get("user_id", "NA"),
+            )
+            nearby_key = find_nearby_key(document["timestamp"], document["metadata"])
+
+            if nearby_key:
+                key = nearby_key
+
+            # Initialize the key if it doesn't exist yet in the buffer
             if key not in buffer:
                 buffer[key] = {
                     "metadata": {
@@ -44,7 +63,7 @@ while start_date <= datetime(2023, 11, 10):
                         "name": document["metadata"].get("name"),
                         "user_id": document["metadata"].get("user_id"),
                     },
-                    "timestamp": document["timestamp"],
+                    "timestamp": key[0],  # first part of the key is the timestamp
                 }
 
             buffer[key][new_collections[collection_name]] = document.get(
@@ -55,11 +74,9 @@ while start_date <= datetime(2023, 11, 10):
 
     all_documents = sorted(buffer.values(), key=itemgetter("timestamp"))
 
-    # Insert the batch of documents for the current day
     if all_documents:
         db["FreeTier"].insert_many(all_documents)
 
-    # Move to the next day
     start_date = end_date
 
 db["Migration"].update_one({"migration_name": "FreeTier"}, {"$set": {"migration_complete": True}})
