@@ -188,12 +188,6 @@ def get_vpd_pipeline(
 ):
     sampling_interval = timedelta(minutes=resolution)
     match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
-    project_projection = {
-        "_id": False,
-        "timestamp": "$timestamp",
-        "vpd": "$vpd",
-    }
-    # We ensure both temperature and humidity exist for the calculation of VPD
     match_clause["temp"] = {"$exists": True}
     match_clause["rh"] = {"$exists": True}
 
@@ -202,33 +196,6 @@ def get_vpd_pipeline(
         {"$match": match_clause},
         {"$addFields": {"tempAsFloat": {"$toDouble": "$temp"}}},
         {"$addFields": {"rhAsFloat": {"$toDouble": "$rh"}}},
-        {
-            "$addFields": {
-                "satvp": {
-                    "$multiply": [
-                        0.61078,
-                        {
-                            "$exp": {
-                                "$multiply": [
-                                    {"$divide": [17.27, {"$add": ["$tempAsFloat", 237.3]}]},
-                                    "$tempAsFloat",
-                                ]
-                            }
-                        },
-                    ]
-                }
-            }
-        },
-        {
-            "$addFields": {
-                "vpd": {
-                    "$multiply": [
-                        "$satvp",
-                        {"$subtract": [1.0, {"$divide": ["$rhAsFloat", 100.0]}]},
-                    ]
-                }
-            }
-        },
         {
             "$addFields": {
                 "group": {
@@ -241,12 +208,50 @@ def get_vpd_pipeline(
                 }
             }
         },
+        {
+            "$group": {
+                "_id": "$group",
+                "averageTemp": {"$avg": "$tempAsFloat"},
+                "averageRH": {"$avg": "$rhAsFloat"},
+                "timestamp": {"$first": "$timestamp"},
+            }
+        },
+        {
+            "$addFields": {
+                "satvp": {
+                    "$multiply": [
+                        0.61078,
+                        {
+                            "$exp": {
+                                "$multiply": [
+                                    {"$divide": [17.27, {"$add": ["$averageTemp", 237.3]}]},
+                                    "$averageTemp",
+                                ]
+                            }
+                        },
+                    ]
+                }
+            }
+        },
+        {
+            "$addFields": {
+                "vpd": {
+                    "$multiply": [
+                        "$satvp",
+                        {"$subtract": [1.0, {"$divide": ["$averageRH", 100.0]}]},
+                    ]
+                }
+            }
+        },
+        {
+            "$project": {
+                "_id": False,
+                "timestamp": "$timestamp",
+                "vpd": "$vpd",
+            }
+        },
         {"$sort": {"timestamp": 1}},
-        {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
-        {"$replaceRoot": {"newRoot": "$doc"}},
-        {"$project": project_projection},
     ]
-
     return pipeline
 
 
