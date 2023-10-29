@@ -209,6 +209,7 @@ def get_vpd_pipeline(
                 }
             }
         },
+        {"$addFields": {"tempAsFloat": {"$toDouble": "$temp"}}},
         {
             "$addFields": {
                 "satvp": {
@@ -217,8 +218,8 @@ def get_vpd_pipeline(
                         {
                             "$exp": {
                                 "$multiply": [
-                                    {"$divide": [17.27, {"$add": ["$temp", 237.3]}]},
-                                    "$temp",
+                                    {"$divide": [17.27, {"$add": ["$tempAsFloat", 237.3]}]},
+                                    "$tempAsFloat",
                                 ]
                             }
                         },
