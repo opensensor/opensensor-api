@@ -75,4 +75,3 @@ class VPD(BaseModel):
 
     timestamp: datetime
     vpd: Optional[float] = Field(None, description="The computed VPD value.")
-    unit: str
