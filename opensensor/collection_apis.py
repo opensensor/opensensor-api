@@ -163,11 +163,6 @@ def get_initial_match_clause(
     start_date: datetime,
     end_date: datetime,
 ):
-    if start_date is None:
-        start_date = datetime.utcnow() - timedelta(days=100)
-    if end_date is None:
-        end_date = datetime.utcnow()
-
     # Defining the match clause for the pipeline
     match_clause = {
         "timestamp": {"$gte": start_date, "$lte": end_date},
@@ -187,6 +182,10 @@ def get_vpd_pipeline(
     resolution: int,
 ):
     sampling_interval = timedelta(minutes=resolution)
+    if start_date is None:
+        start_date = datetime.utcnow() - timedelta(days=100)
+    if end_date is None:
+        end_date = datetime.utcnow()
     match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
     match_clause["temp"] = {"$exists": True}
     match_clause["rh"] = {"$exists": True}
@@ -263,6 +262,10 @@ def get_uniform_sample_pipeline(
     end_date: datetime,
     resolution: int,
 ):
+    if start_date is None:
+        start_date = datetime.utcnow() - timedelta(days=100)
+    if end_date is None:
+        end_date = datetime.utcnow()
     sampling_interval = timedelta(minutes=resolution)
     match_clause = get_initial_match_clause(
         device_ids, device_name, start_date, end_date, resolution
