@@ -188,8 +188,10 @@ def get_vpd_pipeline(
 ):
     sampling_interval = timedelta(minutes=resolution)
     match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
-    project_projection = _get_project_projection(VPD)
-
+    project_projection = {
+        "_id": False,
+        "timestamp": "$timestamp",
+    }
     # We ensure both temperature and humidity exist for the calculation of VPD
     match_clause["temp"] = {"$exists": True}
     match_clause["rh"] = {"$exists": True}
