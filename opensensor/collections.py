@@ -1,9 +1,9 @@
 import json
 from datetime import datetime
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 
 
 class TimestampModel(BaseModel):
@@ -74,5 +74,5 @@ class VPD(BaseModel):
     """
 
     timestamp: datetime
-    vpd: float
+    vpd: Optional[float] = Field(None, description="The computed VPD value.")
     unit: str

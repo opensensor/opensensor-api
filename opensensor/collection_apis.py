@@ -457,7 +457,7 @@ async def record_environment(
 ):
     db = get_open_sensor_db()
 
-    # TODO - Refactor this after migration to FreeTier complete
+    # Paid customers may have their own collection
     if user:
         collection_name = user.collection_name
     else:
