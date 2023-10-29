@@ -191,6 +191,7 @@ def get_vpd_pipeline(
     project_projection = {
         "_id": False,
         "timestamp": "$timestamp",
+        "vpd": "$vpd",
     }
     # We ensure both temperature and humidity exist for the calculation of VPD
     match_clause["temp"] = {"$exists": True}
