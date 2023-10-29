@@ -33,28 +33,25 @@ while start_date <= datetime(2023, 11, 10):
         collection = db[collection_name]
         for document in collection.find({"timestamp": {"$gte": start_date, "$lt": end_date}}):
             unit = document["metadata"].get("unit")
-            new_document = {
-                "metadata": {
-                    "device_id": document["metadata"]["device_id"],
-                    "name": document["metadata"].get("name"),
-                    "user_id": document["metadata"].get("user_id"),
-                },
-                new_collections[collection_name]: document.get(old_collections[collection_name]),
-                "timestamp": document["timestamp"],
-            }
-            if unit:
-                new_document[f"{new_collections[collection_name]}_unit"] = unit
-
             key = create_key(document["timestamp"], document["metadata"])
 
-            if key in buffer:
-                buffer[key][new_collections[collection_name]] = document.get(
-                    old_collections[collection_name]
-                )
-                if unit:
-                    buffer[key][f"{new_collections[collection_name]}_unit"] = unit
-            else:
-                buffer[key] = new_document
+            # This will check if a buffer entry exists for the given timestamp and metadata
+            # If it doesn't exist, it initializes a new dictionary for it
+            if key not in buffer:
+                buffer[key] = {
+                    "metadata": {
+                        "device_id": document["metadata"]["device_id"],
+                        "name": document["metadata"].get("name"),
+                        "user_id": document["metadata"].get("user_id"),
+                    },
+                    "timestamp": document["timestamp"],
+                }
+
+            buffer[key][new_collections[collection_name]] = document.get(
+                old_collections[collection_name]
+            )
+            if unit:
+                buffer[key][f"{new_collections[collection_name]}_unit"] = unit
 
     all_documents = sorted(buffer.values(), key=itemgetter("timestamp"))
 
