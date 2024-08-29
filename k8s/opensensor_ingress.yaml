@@ -20,7 +20,7 @@ spec:
           - growmax.opensensor.io
           - solar.opensensor.io
           - solar-api.opensensor.io
-      secretName: opensensor-tls
+      secretName: letsencrypt-prod
   rules:
   - host: opensensor.io
     http:
