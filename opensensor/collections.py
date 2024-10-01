@@ -46,6 +46,25 @@ class PH(TimestampModel):
         return "pH"
 
 
+class LiquidLevel(TimestampModel):
+    """Liquid Level Sensor output"""
+
+    liquid: bool
+
+
+class RelayStatus(BaseModel):
+    position: int
+    enabled: bool
+    seconds: int | None = None
+    description: str | None = None
+
+
+class RelayBoard(TimestampModel):
+    """Relay Board control tracking"""
+
+    relays: List[RelayStatus]
+
+
 class Moisture(TimestampModel):
     readings: List[float | Decimal | int] | str
 
@@ -66,6 +85,8 @@ class Environment(BaseModel):
     co2: CO2 | None = None
     moisture: Moisture | None = None
     pH: PH | None = None
+    liquid: LiquidLevel | None = None
+    relays: RelayBoard | None = None
 
 
 class VPD(BaseModel):

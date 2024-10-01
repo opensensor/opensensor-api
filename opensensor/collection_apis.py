@@ -15,9 +15,11 @@ from opensensor.collections import (
     DeviceMetadata,
     Environment,
     Humidity,
+    LiquidLevel,
     Lux,
     Moisture,
     Pressure,
+    RelayBoard,
     Temperature,
 )
 from opensensor.db import get_open_sensor_db
@@ -63,6 +65,8 @@ environment_translation = {
     "co2": "ppm_CO2",
     "moisture": "moisture_readings",
     "pH": "pH",
+    "liquid": "liquid",
+    "relays": "relays",
 }
 
 
@@ -308,6 +312,8 @@ model_classes = {
     "readings": Moisture,
     "pH": PH,
     "VPD": VPD,
+    "liquid": LiquidLevel,
+    "relays": RelayBoard,
 }
 model_class_attributes = {v: k for k, v in model_classes.items()}
 
@@ -450,6 +456,30 @@ router.add_api_route(
     response_model=Page[VPD],
     methods=["GET"],
 )
+router.add_api_route(
+    "/pressure/{device_id}",
+    create_historical_data_route(Pressure),
+    response_model=Page[Pressure],
+    methods=["GET"],
+)
+router.add_api_route(
+    "/lux/{device_id}",
+    create_historical_data_route(Lux),
+    response_model=Page[Lux],
+    methods=["GET"],
+)
+router.add_api_route(
+    "/liquid/{device_id}",
+    create_historical_data_route(LiquidLevel),
+    response_model=Page[LiquidLevel],
+    methods=["GET"],
+)
+router.add_api_route(
+    "/relays/{device_id}",
+    create_historical_data_route(RelayBoard),
+    response_model=Page[RelayBoard],
+    methods=["GET"],
+)
 
 
 @router.post("/environment/")
@@ -497,6 +527,14 @@ async def record_environment(
     if environment.pH:
         _record_data_point_to_ts_collection(
             db.pH, "pH", environment.device_metadata, environment.pH, user
+        )
+    if environment.liquid:
+        _record_data_point_to_ts_collection(
+            db.LiquidLevel, "liquid", environment.device_metadata, environment.liquid, user
+        )
+    if environment.relays:
+        _record_data_point_to_ts_collection(
+            db.RelayBoard, "relays", environment.device_metadata, environment.relays, user
         )
 
     return Response(status_code=status.HTTP_201_CREATED)
