@@ -22,7 +22,7 @@ TIME_WINDOW = timedelta(seconds=3)
 
 
 def find_nearby_key(timestamp, metadata):
-    for (key_time, key_device_id, key_name, key_user_id) in buffer.keys():
+    for key_time, key_device_id, key_name, key_user_id in buffer.keys():
         if (
             key_device_id == metadata["device_id"]
             and key_name == metadata.get("name", "NA")
