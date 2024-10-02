@@ -122,8 +122,7 @@ def get_user_from_fief_user(fief_user: FiefUserInfo) -> User:
         db = get_open_sensor_db()
         users_db = db["Users"]
         fief_user_id = fief_user["sub"]
-        binary_uuid = Binary.from_uuid(UUID(fief_user_id))
-        user = users_db.find_one({"_id": binary_uuid})
+        user = users_db.find_one({"_id": fief_user_id})
         user = User(**user)
         return user
 
