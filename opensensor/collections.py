@@ -51,6 +51,10 @@ class LiquidLevel(TimestampModel):
 
     liquid: bool
 
+    @classmethod
+    def collection_name(cls):
+        return "liquid"
+
 
 class RelayStatus(BaseModel):
     position: int
@@ -63,6 +67,10 @@ class RelayBoard(TimestampModel):
     """Relay Board control tracking"""
 
     relays: List[RelayStatus]
+
+    @classmethod
+    def collection_name(cls):
+        return "relays"
 
 
 class Moisture(TimestampModel):

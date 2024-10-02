@@ -362,17 +362,19 @@ def get_uniform_sample_pipeline(
     project_pipeline = create_nested_pipeline(response_model)
     project_pipeline["timestamp"] = "$timestamp"
 
-    # Handle flat models (like Pressure, LiquidLevel, pH) that have a single main field
-    if len(response_model.__fields__) == 2 and "timestamp" in response_model.__fields__:
-        main_field = next(field for field in response_model.__fields__ if field != "timestamp")
-        lookup_field = (
-            response_model.collection_name()
-            if hasattr(response_model, "collection_name")
-            else response_model.__name__
-        )
-        mongo_field = new_collections.get(lookup_field, main_field.lower())
-        project_pipeline[main_field] = f"${mongo_field}"
-        logger.debug(f"Mapping {mongo_field} to {main_field} for model {response_model.__name__}")
+    # # Handle flat models (like Pressure, LiquidLevel, pH) that have a single main field
+    # if len(response_model.__fields__) == 2 and "timestamp" in response_model.__fields__:
+    #     main_field = next(field for field in response_model.__fields__ if field != "timestamp")
+    #     lookup_field = (
+    #         response_model.collection_name()
+    #         if hasattr(response_model, "collection_name")
+    #         else response_model.__name__
+    #     )
+    #     mongo_field = new_collections.get(lookup_field, main_field.lower())
+    #     project_pipeline[main_field] = f"${mongo_field}"
+    #     logger.info(f"Mapping {mongo_field} to {main_field} for model {response_model.__name__}")
+
+    logger.info(f"Project pipeline for {response_model.__name__}: {project_pipeline}")
 
     pipeline = [
         {"$match": match_clause},
@@ -394,7 +396,7 @@ def get_uniform_sample_pipeline(
         {"$sort": {"timestamp": 1}},
     ]
 
-    logger.debug(f"Pipeline for {response_model.__name__}: {pipeline}")
+    logger.info(f"Pipeline for {response_model.__name__}: {pipeline}")
     return pipeline
 
 
