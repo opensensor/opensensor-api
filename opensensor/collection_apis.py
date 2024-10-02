@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Generic, List, Optional, Type, TypeVar, get_args, get_origin
 
@@ -34,6 +35,8 @@ from opensensor.users import (
     validate_environment,
 )
 from opensensor.utils.units import convert_temperature
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -228,8 +231,9 @@ def create_model_instance(model: Type[BaseModel], data: dict):
     # Handle flat models (like Pressure) that have a single main field
     if len(model.__fields__) == 2 and "timestamp" in model.__fields__:
         main_field = next(field for field in model.__fields__ if field != "timestamp")
-        if main_field not in data and model.__name__ in new_collections:
-            data[main_field] = data.get(new_collections[model.__name__])
+        mongo_field = new_collections.get(model.__name__, main_field.lower())
+        if main_field not in data and mongo_field in data:
+            data[main_field] = data[mongo_field]
 
     for field_name, nested_model in nested_fields.items():
         if field_name in data:
@@ -239,6 +243,8 @@ def create_model_instance(model: Type[BaseModel], data: dict):
                 ]
             else:
                 data[field_name] = create_model_instance(nested_model, data[field_name])
+
+    logger.debug(f"Creating instance of {model.__name__} with data: {data}")
     return model(**data)
 
 
@@ -344,9 +350,9 @@ def get_uniform_sample_pipeline(
     # Handle flat models (like Pressure) that have a single main field
     if len(response_model.__fields__) == 2 and "timestamp" in response_model.__fields__:
         main_field = next(field for field in response_model.__fields__ if field != "timestamp")
-        project_pipeline[main_field] = (
-            f"${new_collections.get(response_model.__name__, main_field)}"
-        )
+        mongo_field = new_collections.get(response_model.__name__, main_field.lower())
+        project_pipeline[main_field] = f"${mongo_field}"
+        logger.debug(f"Mapping {mongo_field} to {main_field} for model {response_model.__name__}")
 
     pipeline = [
         {"$match": match_clause},
@@ -368,6 +374,7 @@ def get_uniform_sample_pipeline(
         {"$sort": {"timestamp": 1}},
     ]
 
+    logger.debug(f"Pipeline for {response_model.__name__}: {pipeline}")
     return pipeline
 
 
