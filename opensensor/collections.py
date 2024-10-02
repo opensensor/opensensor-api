@@ -20,6 +20,10 @@ class Temperature(TimestampModel):
     temp: Decimal
     unit: str | None = None
 
+    @classmethod
+    def collection_name(cls):
+        return "temp"
+
 
 class Humidity(TimestampModel):
     rh: Decimal
