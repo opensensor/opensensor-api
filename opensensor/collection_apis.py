@@ -200,6 +200,7 @@ def get_nested_fields(model: Type[BaseModel]):
 
 
 def create_nested_pipeline(model: Type[BaseModel], prefix=""):
+    logger.debug(f"Creating nested pipeline for model: {model.__name__}, prefix: {prefix}")
     nested_fields = get_nested_fields(model)
     pipeline = {}
     match_conditions = {}
@@ -218,10 +219,16 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
         if field_name in nested_fields:
             if get_origin(field_type.type_) is List:
                 nested_pipeline, nested_match = create_nested_pipeline(
-                    nested_fields[field_name], "$$item."
+                    nested_fields[field_name], ""  # Empty prefix for list items
                 )
                 pipeline[field_name] = {
-                    "$map": {"input": f"${full_field_name}", "as": "item", "in": nested_pipeline}
+                    "$map": {
+                        "input": f"${full_field_name}",
+                        "as": "item",
+                        "in": {
+                            k: f"$item.{v.replace('$', '')}" for k, v in nested_pipeline.items()
+                        },
+                    }
                 }
                 match_conditions[full_field_name] = {"$exists": True, "$ne": []}
             else:
@@ -236,6 +243,10 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
             pipeline[field_name] = f"${full_field_name}"
             match_conditions[full_field_name] = {"$exists": True}
 
+        logger.debug(f"Field: {field_name}, Full field name: {full_field_name}")
+        logger.debug(f"Resulting pipeline part: {pipeline[field_name]}")
+
+    logger.debug(f"Final pipeline for {model.__name__}: {pipeline}")
     return pipeline, match_conditions
 
 
