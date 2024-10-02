@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Generic, List, Optional, Type, TypeVar
+from typing import Generic, List, Optional, Type, TypeVar, get_args, get_origin
 
 from bson import Binary
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
@@ -182,6 +182,59 @@ def get_initial_match_clause(
     return match_clause
 
 
+def is_pydantic_model(obj):
+    return isinstance(obj, type) and issubclass(obj, BaseModel)
+
+
+def get_nested_fields(model: Type[BaseModel]):
+    nested_fields = {}
+    for field_name, field in model.__fields__.items():
+        if is_pydantic_model(field.type_):
+            nested_fields[field_name] = field.type_
+        elif get_origin(field.type_) is List and is_pydantic_model(get_args(field.type_)[0]):
+            nested_fields[field_name] = get_args(field.type_)[0]
+    return nested_fields
+
+
+def create_nested_pipeline(model: Type[BaseModel], prefix=""):
+    nested_fields = get_nested_fields(model)
+    pipeline = {}
+
+    for field_name, field_type in model.__fields__.items():
+        full_field_name = f"{prefix}{field_name}"
+
+        if field_name in nested_fields:
+            if get_origin(field_type.type_) is List:
+                pipeline[field_name] = {
+                    "$map": {
+                        "input": f"${full_field_name}",
+                        "as": "item",
+                        "in": create_nested_pipeline(nested_fields[field_name], "$$item."),
+                    }
+                }
+            else:
+                pipeline[field_name] = create_nested_pipeline(
+                    nested_fields[field_name], f"{full_field_name}."
+                )
+        else:
+            pipeline[field_name] = f"${full_field_name}"
+
+    return pipeline
+
+
+def create_model_instance(model: Type[BaseModel], data: dict):
+    nested_fields = get_nested_fields(model)
+    for field_name, nested_model in nested_fields.items():
+        if field_name in data:
+            if isinstance(data[field_name], list):
+                data[field_name] = [
+                    create_model_instance(nested_model, item) for item in data[field_name]
+                ]
+            else:
+                data[field_name] = create_model_instance(nested_model, data[field_name])
+    return model(**data)
+
+
 def get_vpd_pipeline(
     device_ids: List[str],
     device_name: str,
@@ -264,7 +317,7 @@ def get_vpd_pipeline(
 
 def get_uniform_sample_pipeline(
     response_model: Type[T],
-    device_ids: List[str],  # Update the type of the device_id parameter to List[str]
+    device_ids: List[str],
     device_name: str,
     start_date: datetime,
     end_date: datetime,
@@ -277,13 +330,10 @@ def get_uniform_sample_pipeline(
     sampling_interval = timedelta(minutes=resolution)
     match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
 
-    # Determine the $project
-    old_name = get_collection_name(response_model)
-    new_collection_name = new_collections[old_name]
-    project_projection = _get_project_projection(response_model)
-    match_clause[new_collection_name] = {"$exists": True}
+    # Create a generalized project pipeline
+    project_pipeline = create_nested_pipeline(response_model)
+    project_pipeline["timestamp"] = "$timestamp"
 
-    # Query a uniform sample of documents within the timestamp range
     pipeline = [
         {"$match": match_clause},
         {
@@ -300,10 +350,10 @@ def get_uniform_sample_pipeline(
         },
         {"$group": {"_id": "$group", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
-        {"$project": project_projection},
-        {"$sort": {"timestamp": 1}},  # Sort by timestamp in ascending order
-        # {"$count": "total"}
+        {"$project": project_pipeline},
+        {"$sort": {"timestamp": 1}},
     ]
+
     return pipeline
 
 
@@ -371,10 +421,9 @@ def sample_and_paginate_collection(
         # So, you can directly use it to create the response model instances.
         data = [VPD(**item) for item in raw_data]
     else:
-        data_field = model_class_attributes[response_model]
-        model_class = model_classes[data_field]
-        data = [model_class(**item) for item in raw_data]
-        if data_field == "temp" and unit:
+        data = [create_model_instance(response_model, item) for item in raw_data]
+
+        if hasattr(response_model, "temp") and unit:
             for item in data:
                 convert_temperature(item, unit)
 
