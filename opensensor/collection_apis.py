@@ -29,7 +29,6 @@ from opensensor.users import (
     auth,
     device_id_is_allowed_for_user,
     get_api_keys_by_device_id,
-    get_user_from_fief_user,
     migration_complete,
     reduce_api_keys_to_device_ids,
     validate_environment,
@@ -53,15 +52,15 @@ old_collections = {
 }
 
 new_collections = {
-    "Temperature": "temp",
+    "temp": "temp",
     "Humidity": "rh",
     "Pressure": "pressure",
     "Lux": "lux",
     "CO2": "ppm_CO2",
     "pH": "pH",
     "Moisture": "moisture_readings",
-    "LiquidLevel": "liquid",
-    "RelayBoard": "relays",
+    "liquid": "liquid",
+    "relays": "relays",
 }
 
 environment_translation = {
@@ -522,12 +521,8 @@ def create_historical_data_route(entity: Type[T]):
                 detail=f"User {fief_user} is not authorized to access device {device_id}",
             )
 
-        # TODO - Refactor this after migration to FreeTier complete
-        user = get_user_from_fief_user(fief_user)
-        if user:
-            collection_name = user.collection_name
-        else:
-            collection_name = "FreeTier"
+        # TODO - Refactor this to support paid collections
+        collection_name = "FreeTier"
 
         return sample_and_paginate_collection(
             entity,
