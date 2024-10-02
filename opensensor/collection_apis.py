@@ -224,6 +224,13 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
 
 def create_model_instance(model: Type[BaseModel], data: dict):
     nested_fields = get_nested_fields(model)
+
+    # Handle flat models (like Pressure) that have a single main field
+    if len(model.__fields__) == 2 and "timestamp" in model.__fields__:
+        main_field = next(field for field in model.__fields__ if field != "timestamp")
+        if main_field not in data and model.__name__ in new_collections:
+            data[main_field] = data.get(new_collections[model.__name__])
+
     for field_name, nested_model in nested_fields.items():
         if field_name in data:
             if isinstance(data[field_name], list):
@@ -333,6 +340,13 @@ def get_uniform_sample_pipeline(
     # Create a generalized project pipeline
     project_pipeline = create_nested_pipeline(response_model)
     project_pipeline["timestamp"] = "$timestamp"
+
+    # Handle flat models (like Pressure) that have a single main field
+    if len(response_model.__fields__) == 2 and "timestamp" in response_model.__fields__:
+        main_field = next(field for field in response_model.__fields__ if field != "timestamp")
+        project_pipeline[main_field] = (
+            f"${new_collections.get(response_model.__name__, main_field)}"
+        )
 
     pipeline = [
         {"$match": match_clause},
