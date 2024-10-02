@@ -204,7 +204,11 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     pipeline = {}
 
     for field_name, field_type in model.__fields__.items():
-        full_field_name = f"{prefix}{field_name}"
+        lookup_field = (
+            model.collection_name() if hasattr(model, "collection_name") else model.__name__
+        )
+        mongo_field = new_collections.get(lookup_field, field_name.lower())
+        full_field_name = f"{prefix}{mongo_field}"
 
         if field_name in nested_fields:
             if get_origin(field_type.type_) is List:
@@ -361,18 +365,6 @@ def get_uniform_sample_pipeline(
     # Create a generalized project pipeline
     project_pipeline = create_nested_pipeline(response_model)
     project_pipeline["timestamp"] = "$timestamp"
-
-    # # Handle flat models (like Pressure, LiquidLevel, pH) that have a single main field
-    # if len(response_model.__fields__) == 2 and "timestamp" in response_model.__fields__:
-    #     main_field = next(field for field in response_model.__fields__ if field != "timestamp")
-    #     lookup_field = (
-    #         response_model.collection_name()
-    #         if hasattr(response_model, "collection_name")
-    #         else response_model.__name__
-    #     )
-    #     mongo_field = new_collections.get(lookup_field, main_field.lower())
-    #     project_pipeline[main_field] = f"${mongo_field}"
-    #     logger.info(f"Mapping {mongo_field} to {main_field} for model {response_model.__name__}")
 
     logger.info(f"Project pipeline for {response_model.__name__}: {project_pipeline}")
 
