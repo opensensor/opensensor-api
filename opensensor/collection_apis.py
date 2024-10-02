@@ -221,17 +221,7 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
                     nested_fields[field_name], "$$item."
                 )
                 pipeline[field_name] = {
-                    "$map": {
-                        "input": {
-                            "$filter": {
-                                "input": f"${full_field_name}",
-                                "as": "item",
-                                "cond": nested_match,
-                            }
-                        },
-                        "as": "item",
-                        "in": nested_pipeline,
-                    }
+                    "$map": {"input": f"${full_field_name}", "as": "item", "in": nested_pipeline}
                 }
                 match_conditions[full_field_name] = {"$exists": True, "$ne": []}
             else:
