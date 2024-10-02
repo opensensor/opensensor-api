@@ -2,6 +2,7 @@ import base64
 import os
 import secrets
 from collections import defaultdict
+from logging import getLogger
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -29,6 +30,8 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
 oauth2_auth = FiefAuth(fief, oauth2_scheme)
 SESSION_COOKIE_NAME = "user_session"
 cookie_scheme = APIKeyCookie(name=SESSION_COOKIE_NAME, auto_error=False)
+
+logger = getLogger(__name__)
 
 
 def get_redirect_uri(request):
@@ -122,9 +125,31 @@ def get_user_from_fief_user(fief_user: FiefUserInfo) -> User:
         db = get_open_sensor_db()
         users_db = db["Users"]
         fief_user_id = fief_user["sub"]
-        user = users_db.find_one({"_id": fief_user_id})
-        user = User(**user)
-        return user
+        logger.debug(f"Fief user ID: {fief_user_id}")
+
+        try:
+            binary_uuid = Binary.from_uuid(UUID(fief_user_id))
+            logger.debug(f"Binary UUID: {binary_uuid}")
+        except ValueError as e:
+            logger.error(f"Invalid UUID: {e}")
+            return None
+
+        user = users_db.find_one({"_id": binary_uuid})
+        logger.debug(f"Found user: {user}")
+
+        if user is None:
+            logger.warning(f"No user found for Fief user ID: {fief_user_id}")
+            return None
+
+        try:
+            user_obj = User(**user)
+            return user_obj
+        except TypeError as e:
+            logger.error(f"Error creating User object: {e}")
+            return None
+
+    logger.warning("No Fief user provided")
+    return None
 
 
 def migration_complete(migration_name: str) -> bool:
