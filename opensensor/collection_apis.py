@@ -231,7 +231,10 @@ def create_model_instance(model: Type[BaseModel], data: dict):
     # Handle flat models (like Pressure) that have a single main field
     if len(model.__fields__) == 2 and "timestamp" in model.__fields__:
         main_field = next(field for field in model.__fields__ if field != "timestamp")
-        mongo_field = new_collections.get(model.__name__, main_field.lower())
+        lookup_field = (
+            model.collection_name if hasattr(model, "collection_name") else model.__name__
+        )
+        mongo_field = new_collections.get(lookup_field, main_field)
         if main_field not in data and mongo_field in data:
             data[main_field] = data[mongo_field]
 
