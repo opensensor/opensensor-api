@@ -228,15 +228,27 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
 def create_model_instance(model: Type[BaseModel], data: dict):
     nested_fields = get_nested_fields(model)
 
-    # Handle flat models (like Pressure) that have a single main field
+    # Handle flat models (like Pressure, LiquidLevel, pH) that have a single main field
     if len(model.__fields__) == 2 and "timestamp" in model.__fields__:
         main_field = next(field for field in model.__fields__ if field != "timestamp")
         lookup_field = (
-            model.collection_name if hasattr(model, "collection_name") else model.__name__
+            model.collection_name() if hasattr(model, "collection_name") else model.__name__
         )
-        mongo_field = new_collections.get(lookup_field, main_field)
-        if main_field not in data and mongo_field in data:
+        mongo_field = new_collections.get(lookup_field, main_field.lower())
+
+        # Check if the mongo_field exists in the data
+        if mongo_field in data:
             data[main_field] = data[mongo_field]
+        elif main_field.lower() in data:
+            # If the main_field (lowercase) exists in data, use it
+            data[main_field] = data[main_field.lower()]
+        else:
+            # If neither the mongo_field nor the main_field exists, log an error
+            logger.error(
+                f"Field '{mongo_field}' or '{main_field}' not found in data for model {model.__name__}"
+            )
+            logger.error(f"Available fields in data: {list(data.keys())}")
+            # You might want to set a default value or raise an exception here
 
     for field_name, nested_model in nested_fields.items():
         if field_name in data:
@@ -350,10 +362,15 @@ def get_uniform_sample_pipeline(
     project_pipeline = create_nested_pipeline(response_model)
     project_pipeline["timestamp"] = "$timestamp"
 
-    # Handle flat models (like Pressure) that have a single main field
+    # Handle flat models (like Pressure, LiquidLevel, pH) that have a single main field
     if len(response_model.__fields__) == 2 and "timestamp" in response_model.__fields__:
         main_field = next(field for field in response_model.__fields__ if field != "timestamp")
-        mongo_field = new_collections.get(response_model.__name__, main_field.lower())
+        lookup_field = (
+            response_model.collection_name()
+            if hasattr(response_model, "collection_name")
+            else response_model.__name__
+        )
+        mongo_field = new_collections.get(lookup_field, main_field.lower())
         project_pipeline[main_field] = f"${mongo_field}"
         logger.debug(f"Mapping {mongo_field} to {main_field} for model {response_model.__name__}")
 
