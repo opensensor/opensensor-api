@@ -201,7 +201,7 @@ def get_nested_fields(model: Type[BaseModel]):
 def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     logger.debug(f"Creating nested pipeline for model: {model.__name__}, prefix: {prefix}")
     nested_fields = get_nested_fields(model)
-    pipeline = {}
+    pipeline = _get_project_projection(model)
     match_conditions = {}
 
     for field_name, field_type in model.__fields__.items():
