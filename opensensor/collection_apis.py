@@ -45,6 +45,8 @@ old_collections = {
     "CO2": "ppm",
     "pH": "pH",
     "Moisture": "readings",
+    "LiquidLevel": "liquid",
+    "RelayBoard": "relays",
 }
 
 new_collections = {
@@ -55,6 +57,8 @@ new_collections = {
     "CO2": "ppm_CO2",
     "pH": "pH",
     "Moisture": "moisture_readings",
+    "LiquidLevel": "liquid",
+    "RelayBoard": "relays",
 }
 
 environment_translation = {
