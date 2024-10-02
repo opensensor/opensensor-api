@@ -226,7 +226,7 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
                         "input": f"${full_field_name}",
                         "as": "item",
                         "in": {
-                            k: f"$item.{v.replace('$', '')}" for k, v in nested_pipeline.items()
+                            k: f"$$item.{v.replace('$', '')}" for k, v in nested_pipeline.items()
                         },
                     }
                 }
