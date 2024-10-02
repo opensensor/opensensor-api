@@ -254,23 +254,30 @@ def create_model_instance(model: Type[BaseModel], data: dict):
     nested_fields = get_nested_fields(model)
 
     # Handle flat models (like Pressure, LiquidLevel, pH) that have a single main field
-    if len(model.__fields__) == 2 and "timestamp" in model.__fields__:
-        main_field = next(field for field in model.__fields__ if field != "timestamp")
+    for field_name, _ in model.__fields__.items():
+        if field_name == "timestamp":
+            continue
+        if field_name in nested_fields:
+            continue
+
         lookup_field = (
             model.collection_name() if hasattr(model, "collection_name") else model.__name__
         )
-        mongo_field = new_collections.get(lookup_field, main_field.lower())
+        mongo_field = new_collections.get(lookup_field, field_name.lower())
 
         # Check if the mongo_field exists in the data
         if mongo_field in data:
-            data[main_field] = data[mongo_field]
-        elif main_field.lower() in data:
-            # If the main_field (lowercase) exists in data, use it
-            data[main_field] = data[main_field.lower()]
+            data[field_name] = data[mongo_field]
+        elif field_name in data:
+            # If the field_name exists in data, use it
+            data[field_name] = data[field_name]
+        elif field_name.lower() in data:
+            # If the field_name (lowercase) exists in data, use it
+            data[field_name] = data[field_name.lower()]
         else:
-            # If neither the mongo_field nor the main_field exists, log an error
+            # If neither the mongo_field nor the field_name exists, log an error
             logger.error(
-                f"Field '{mongo_field}' or '{main_field}' not found in data for model {model.__name__}"
+                f"Field '{mongo_field}' or '{field_name}' not found in data for model {model.__name__}"
             )
             logger.error(f"Available fields in data: {list(data.keys())}")
             # You might want to set a default value or raise an exception here
