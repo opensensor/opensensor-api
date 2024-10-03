@@ -275,7 +275,7 @@ def create_model_instance(model: Type[BaseModel], data: dict, target_unit: Optio
 
         # Handle temperature unit conversion if applicable
         if field_name == "temp" and target_unit and mongo_field in data:
-            data[field_name] = convert_temperature(data[mongo_field], data.get("unit"), target_unit)
+            data[field_name] = convert_temperature(data[mongo_field], target_unit)
         elif mongo_field in data:
             data[field_name] = data[mongo_field]
         elif field_name in data:
