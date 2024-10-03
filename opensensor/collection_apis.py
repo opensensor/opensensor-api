@@ -207,19 +207,21 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     }
 
     for field_name, field_type in model.__fields__.items():
+        if field_name == "timestamp":
+            continue
         lookup_field = (
             model.collection_name() if hasattr(model, "collection_name") else model.__name__
         )
         mongo_field = new_collections.get(lookup_field, field_name.lower())
-        full_field_name = f"{prefix}{mongo_field}"
+        full_mongo_field_name = f"{prefix}{mongo_field}"
 
         if field_name == "unit":
             unit_field_name = f"{prefix}{mongo_field}_unit"
             pipeline["unit"] = f"${unit_field_name}"
             match_conditions[unit_field_name] = {"$exists": True}
         else:
-            pipeline[full_field_name] = f"${full_field_name}"
-            match_conditions[full_field_name] = {"$exists": True}
+            pipeline[field_name] = f"${full_mongo_field_name}"
+            match_conditions[full_mongo_field_name] = {"$exists": True}
 
         if field_name in nested_fields:
             if get_origin(field_type.type_) is List:
@@ -228,24 +230,22 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
                 )
                 pipeline[field_name] = {
                     "$map": {
-                        "input": f"${full_field_name}",
+                        "input": f"${full_mongo_field_name}",
                         "as": "item",
                         "in": {
                             k: f"$$item.{v.replace('$', '')}" for k, v in nested_pipeline.items()
                         },
                     }
                 }
-                match_conditions[full_field_name] = {"$exists": True, "$ne": []}
+                match_conditions[full_mongo_field_name] = {"$exists": True, "$ne": []}
             else:
                 nested_pipeline, nested_match = create_nested_pipeline(
-                    nested_fields[field_name], f"{full_field_name}."
+                    nested_fields[field_name], f"{field_name}."
                 )
                 pipeline[field_name] = nested_pipeline
-                match_conditions.update(
-                    {f"{full_field_name}.{k}": v for k, v in nested_match.items()}
-                )
+                match_conditions.update({f"{field_name}.{k}": v for k, v in nested_match.items()})
 
-        logger.debug(f"Field: {field_name}, Full field name: {full_field_name}")
+        logger.debug(f"Field: {field_name}, Full mongo field name: {full_mongo_field_name}")
         logger.debug(f"Resulting pipeline part: {pipeline[field_name]}")
 
     logger.debug(f"Final pipeline for {model.__name__}: {pipeline}")
