@@ -156,11 +156,10 @@ def _get_project_projection(response_model: Type[T]):
     new_collection_name = new_collections.get(old_name, old_name)
     project_projection = {
         "_id": False,
+        "timestamp": "$timestamp",
     }
     for field_name, _ in response_model.__fields__.items():
-        if field_name == "timestamp":
-            project_projection["timestamp"] = "$timestamp"
-        elif field_name == "unit":
+        if field_name == "unit":
             project_projection["unit"] = f"${new_collection_name}_unit"
         else:
             project_projection[field_name] = f"${new_collection_name}"
@@ -204,6 +203,7 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     match_conditions = {}
     pipeline = {
         "_id": False,
+        "$timestamp": "$timestamp",
     }
 
     for field_name, field_type in model.__fields__.items():
@@ -213,12 +213,13 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
         mongo_field = new_collections.get(lookup_field, field_name.lower())
         full_field_name = f"{prefix}{mongo_field}"
 
-        if field_name == "timestamp":
-            pipeline["timestamp"] = "$timestamp"
-        elif field_name == "unit":
-            pipeline["unit"] = f"${full_field_name}_unit"
+        if field_name == "unit":
+            unit_field_name = f"{prefix}{mongo_field}_unit"
+            pipeline["unit"] = f"${unit_field_name}"
+            match_conditions[unit_field_name] = {"$exists": True}
         else:
             pipeline[full_field_name] = f"${full_field_name}"
+            match_conditions[full_field_name] = {"$exists": True}
 
         if field_name in nested_fields:
             if get_origin(field_type.type_) is List:
@@ -243,9 +244,6 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
                 match_conditions.update(
                     {f"{full_field_name}.{k}": v for k, v in nested_match.items()}
                 )
-        else:
-            pipeline[field_name] = f"${full_field_name}"
-            match_conditions[full_field_name] = {"$exists": True}
 
         logger.debug(f"Field: {field_name}, Full field name: {full_field_name}")
         logger.debug(f"Resulting pipeline part: {pipeline[field_name]}")
