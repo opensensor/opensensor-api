@@ -201,19 +201,24 @@ def get_nested_fields(model: Type[BaseModel]):
 def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     logger.debug(f"Creating nested pipeline for model: {model.__name__}, prefix: {prefix}")
     nested_fields = get_nested_fields(model)
-    pipeline = _get_project_projection(model)
     match_conditions = {}
+    pipeline = {
+        "_id": False,
+    }
 
     for field_name, field_type in model.__fields__.items():
-        if field_name in pipeline:
-            # Skip fields that are already in the pipeline
-            continue
-
         lookup_field = (
             model.collection_name() if hasattr(model, "collection_name") else model.__name__
         )
         mongo_field = new_collections.get(lookup_field, field_name.lower())
         full_field_name = f"{prefix}{mongo_field}"
+
+        if field_name == "timestamp":
+            pipeline["timestamp"] = "$timestamp"
+        elif field_name == "unit":
+            pipeline["unit"] = f"${full_field_name}_unit"
+        else:
+            pipeline[full_field_name] = f"${full_field_name}"
 
         if field_name in nested_fields:
             if get_origin(field_type.type_) is List:
