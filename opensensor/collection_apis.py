@@ -255,7 +255,6 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
 def create_model_instance(model: Type[BaseModel], data: dict):
     nested_fields = get_nested_fields(model)
 
-    # Handle flat models (like Pressure, LiquidLevel, pH) that have a single main field
     for field_name, _ in model.__fields__.items():
         if field_name == "timestamp":
             continue
@@ -267,8 +266,14 @@ def create_model_instance(model: Type[BaseModel], data: dict):
         )
         mongo_field = new_collections.get(lookup_field, field_name.lower())
 
+        # Special handling for the unit field
+        if field_name == "unit":
+            unit_field = f"{mongo_field}_unit"
+            if unit_field in data:
+                data[field_name] = data[unit_field]
+            continue
         # Check if the mongo_field exists in the data
-        if mongo_field in data:
+        elif mongo_field in data:
             data[field_name] = data[mongo_field]
         elif field_name in data:
             # If the field_name exists in data, use it
