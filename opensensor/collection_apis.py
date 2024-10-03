@@ -502,8 +502,7 @@ def sample_and_paginate_collection(
         data = [VPD(**item) for item in raw_data]
     else:
         data = [create_model_instance(response_model, item) for item in raw_data]
-
-        if hasattr(response_model, "temp") and unit:
+        if data and unit:
             for item in data:
                 convert_temperature(item, unit)
 
@@ -526,7 +525,7 @@ def create_historical_data_route(entity: Type[T]):
         resolution: int = 30,
         page: int = Query(1, ge=1, description="Page number (1-indexed)"),
         size: int = Query(50, ge=1, le=1000, description="Page size"),
-        unit: str | None = None,
+        unit: str | None = Query(None, description="Unit"),
     ) -> Page[T]:
         if not device_id_is_allowed_for_user(device_id, user=fief_user):
             raise HTTPException(
@@ -536,6 +535,8 @@ def create_historical_data_route(entity: Type[T]):
 
         # TODO - Refactor this to support paid collections
         collection_name = "FreeTier"
+        if not isinstance(entity, Temperature):
+            unit = None
 
         return sample_and_paginate_collection(
             entity,
