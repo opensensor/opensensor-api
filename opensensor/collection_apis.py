@@ -252,7 +252,7 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     return pipeline, match_conditions
 
 
-def create_model_instance(model: Type[BaseModel], data: dict):
+def create_model_instance(model: Type[BaseModel], data: dict, target_unit: Optional[str] = None):
     nested_fields = get_nested_fields(model)
 
     for field_name, _ in model.__fields__.items():
@@ -272,7 +272,10 @@ def create_model_instance(model: Type[BaseModel], data: dict):
             if unit_field in data:
                 data[field_name] = data[unit_field]
             continue
-        # Check if the mongo_field exists in the data
+
+        # Handle temperature unit conversion if applicable
+        if field_name == "temp" and target_unit and mongo_field in data:
+            data[field_name] = convert_temperature(data[mongo_field], data.get("unit"), target_unit)
         elif mongo_field in data:
             data[field_name] = data[mongo_field]
         elif field_name in data:
@@ -293,10 +296,13 @@ def create_model_instance(model: Type[BaseModel], data: dict):
         if field_name in data:
             if isinstance(data[field_name], list):
                 data[field_name] = [
-                    create_model_instance(nested_model, item) for item in data[field_name]
+                    create_model_instance(nested_model, item, target_unit)
+                    for item in data[field_name]
                 ]
             else:
-                data[field_name] = create_model_instance(nested_model, data[field_name])
+                data[field_name] = create_model_instance(
+                    nested_model, data[field_name], target_unit
+                )
 
     logger.debug(f"Creating instance of {model.__name__} with data: {data}")
     return model(**data)
@@ -501,10 +507,7 @@ def sample_and_paginate_collection(
         # So, you can directly use it to create the response model instances.
         data = [VPD(**item) for item in raw_data]
     else:
-        data = [create_model_instance(response_model, item) for item in raw_data]
-        if data and unit:
-            for item in data:
-                convert_temperature(item, unit)
+        data = [create_model_instance(response_model, item, unit) for item in raw_data]
 
     # Re-run for total page count
     pipeline.append({"$count": "total"})
@@ -535,8 +538,6 @@ def create_historical_data_route(entity: Type[T]):
 
         # TODO - Refactor this to support paid collections
         collection_name = "FreeTier"
-        if not isinstance(entity, Temperature):
-            unit = None
 
         return sample_and_paginate_collection(
             entity,
