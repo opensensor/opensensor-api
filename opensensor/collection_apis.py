@@ -274,9 +274,7 @@ def create_model_instance(model: Type[BaseModel], data: dict, target_unit: Optio
             continue
 
         # Handle temperature unit conversion if applicable
-        if field_name == "temp" and target_unit and mongo_field in data:
-            data[field_name] = convert_temperature(data[mongo_field], target_unit)
-        elif mongo_field in data:
+        if mongo_field in data:
             data[field_name] = data[mongo_field]
         elif field_name in data:
             # If the field_name exists in data, use it
@@ -305,7 +303,10 @@ def create_model_instance(model: Type[BaseModel], data: dict, target_unit: Optio
                 )
 
     logger.debug(f"Creating instance of {model.__name__} with data: {data}")
-    return model(**data)
+    result = model(**data)
+    if isinstance(result, Temperature) and target_unit:
+        convert_temperature(result, target_unit)
+    return result
 
 
 def get_vpd_pipeline(
