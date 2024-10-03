@@ -205,8 +205,8 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     match_conditions = {}
 
     for field_name, field_type in model.__fields__.items():
-        if field_name == "timestamp":
-            pipeline[field_name] = f"${prefix}timestamp"
+        if field_name in pipeline:
+            # Skip fields that are already in the pipeline
             continue
 
         lookup_field = (
