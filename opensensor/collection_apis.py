@@ -486,7 +486,12 @@ def sample_and_paginate_collection(
 
     # Add UTC offset to timestamp field
     for item in raw_data:
-        item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
+        if isinstance(item["timestamp"], datetime):
+            item["timestamp"] = item["timestamp"].replace(tzinfo=timezone.utc).isoformat()
+        elif isinstance(item["timestamp"], str):
+            item["timestamp"] = (
+                datetime.fromisoformat(item["timestamp"]).replace(tzinfo=timezone.utc).isoformat()
+            )
 
     if response_model is VPD:
         # If the response model is VPD, you already have VPD-related data from the pipeline.
