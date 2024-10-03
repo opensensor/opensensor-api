@@ -203,7 +203,7 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
     match_conditions = {}
     pipeline = {
         "_id": False,
-        "$timestamp": "$timestamp",
+        "timestamp": "$timestamp",
     }
 
     for field_name, field_type in model.__fields__.items():
