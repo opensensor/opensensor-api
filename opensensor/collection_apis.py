@@ -140,6 +140,8 @@ def _record_data_to_ts_collection(
                 if value is not None:
                     if key == "unit":
                         doc_to_insert[column_name + "_unit"] = value
+                    elif key == "relays":
+                        doc_to_insert[column_name] = json.dumps(value)
                     else:
                         doc_to_insert[column_name] = str(value)
 
@@ -580,11 +582,14 @@ def sample_and_paginate_collection(
         relays = []
         for item in raw_data:
             for relay in item["relays"]:
-                if isinstance(relay, str):
-                    relay = json.loads(relay)
-                if isinstance(relay, list):
-                    relay = relay[0]
-                relays.append(RelayStatus(**relay))
+                try:
+                    if isinstance(relay, str):
+                        relay = json.loads(relay)
+                    if isinstance(relay, list):
+                        relay = relay[0]
+                    relays.append(RelayStatus(**relay))
+                except Exception:
+                    pass  # Ignore invalid relay data
             relay_board = RelayBoard(relays=relays)
             data.append(relay_board)
     else:
