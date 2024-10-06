@@ -585,10 +585,9 @@ def sample_and_paginate_collection(
                 try:
                     if isinstance(relay, str):
                         relay = json.loads(relay)
-                    if isinstance(relay, list):
-                        relay = relay[0]
                     relays.append(RelayStatus(**relay))
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Error creating RelayStatus: {e}")
                     pass  # Ignore invalid relay data
             relay_board = RelayBoard(relays=relays)
             data.append(relay_board)
