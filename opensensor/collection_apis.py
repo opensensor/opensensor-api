@@ -591,8 +591,9 @@ def sample_and_paginate_collection(
                 except Exception as e:
                     logger.error(f"Error creating RelayStatus: {e}")
                     pass  # Ignore invalid relay data
-            relay_board = RelayBoard(relays=relays, timestamp=item["timestamp"])
-            data.append(relay_board)
+            if relays:
+                relay_board = RelayBoard(relays=relays, timestamp=item["timestamp"])
+                data.append(relay_board)
     else:
         data = [create_model_instance(response_model, item, unit) for item in raw_data]
 
