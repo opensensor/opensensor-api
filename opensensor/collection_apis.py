@@ -579,17 +579,15 @@ def sample_and_paginate_collection(
         data = [VPD(**item) for item in raw_data]
     elif response_model is RelayBoard:
         data = []
-        relays = []
         for item in raw_data:
+            relays = []
             for relay in item["relays"]:
                 try:
-                    if isinstance(relay, str):
-                        relay = json.loads(relay)
                     relays.append(RelayStatus(**relay))
                 except Exception as e:
                     logger.error(f"Error creating RelayStatus: {e}")
                     pass  # Ignore invalid relay data
-            relay_board = RelayBoard(relays=relays)
+            relay_board = RelayBoard(relays=relays, timestamp=item["timestamp"])
             data.append(relay_board)
     else:
         data = [create_model_instance(response_model, item, unit) for item in raw_data]
