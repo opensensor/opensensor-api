@@ -389,6 +389,58 @@ def get_vpd_pipeline(
     return pipeline
 
 
+def get_relay_board_pipeline(
+    device_ids: List[str],
+    device_name: str,
+    start_date: datetime,
+    end_date: datetime,
+    resolution: int,
+):
+    sampling_interval = timedelta(minutes=resolution)
+    if start_date is None:
+        start_date = datetime.utcnow() - timedelta(days=100)
+    if end_date is None:
+        end_date = datetime.utcnow()
+    match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
+
+    # The MongoDB aggregation pipeline for Relay Board data
+    pipeline = [
+        {"$match": match_clause},
+        {
+            "$addFields": {
+                "group": {
+                    "$floor": {
+                        "$divide": [
+                            {"$subtract": ["$timestamp", start_date]},
+                            sampling_interval.total_seconds() * 1000,
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": "$group",
+                "doc": {"$first": "$$ROOT"},
+            }
+        },
+        {
+            "$replaceRoot": {
+                "newRoot": "$doc",
+            }
+        },
+        {
+            "$project": {
+                "_id": False,
+                "timestamp": "$timestamp",
+                "relays": "$relays",
+            }
+        },
+        {"$sort": {"timestamp": 1}},
+    ]
+    return pipeline
+
+
 def get_uniform_sample_pipeline(
     response_model: Type[T],
     device_ids: List[str],
@@ -478,6 +530,14 @@ def sample_and_paginate_collection(
             end_date,
             resolution,
         )
+    elif response_model is RelayBoard:
+        pipeline = get_relay_board_pipeline(
+            device_ids,
+            target_device_name,
+            start_date,
+            end_date,
+            resolution,
+        )
     else:
         pipeline = get_uniform_sample_pipeline(
             response_model,
@@ -507,6 +567,8 @@ def sample_and_paginate_collection(
         # If the response model is VPD, you already have VPD-related data from the pipeline.
         # So, you can directly use it to create the response model instances.
         data = [VPD(**item) for item in raw_data]
+    elif response_model is RelayBoard:
+        data = [RelayBoard(**item) for item in raw_data]
     else:
         data = [create_model_instance(response_model, item, unit) for item in raw_data]
 
