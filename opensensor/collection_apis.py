@@ -404,7 +404,6 @@ def get_relay_board_pipeline(
     match_clause = get_initial_match_clause(device_ids, device_name, start_date, end_date)
     match_clause["relays"] = {"$exists": True}
 
-    # The MongoDB aggregation pipeline for Relay Board data
     pipeline = [
         {"$match": match_clause},
         {
@@ -434,7 +433,13 @@ def get_relay_board_pipeline(
             "$project": {
                 "_id": False,
                 "timestamp": "$timestamp",
-                "relays": "$relays",
+                "relays": {
+                    "$cond": {
+                        "if": {"$isArray": "$relays"},
+                        "then": "$relays",
+                        "else": [{"$ifNull": ["$relays", []]}],
+                    }
+                },
             }
         },
         {"$sort": {"timestamp": 1}},
