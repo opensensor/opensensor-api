@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Generic, List, Optional, Type, TypeVar, get_args, get_origin
@@ -579,6 +580,10 @@ def sample_and_paginate_collection(
         relays = []
         for item in raw_data:
             for relay in item["relays"]:
+                if isinstance(relay, str):
+                    relay = json.loads(relay)
+                if isinstance(relay, list):
+                    relay = relay[0]
                 relays.append(RelayStatus(**relay))
             relay_board = RelayBoard(relays=relays)
             data.append(relay_board)
