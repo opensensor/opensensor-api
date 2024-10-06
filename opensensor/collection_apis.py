@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Generic, List, Optional, Type, TypeVar, get_args, get_origin
@@ -21,6 +22,7 @@ from opensensor.collections import (
     Moisture,
     Pressure,
     RelayBoard,
+    RelayStatus,
     Temperature,
 )
 from opensensor.db import get_open_sensor_db
@@ -574,7 +576,14 @@ def sample_and_paginate_collection(
         # So, you can directly use it to create the response model instances.
         data = [VPD(**item) for item in raw_data]
     elif response_model is RelayBoard:
-        data = [RelayBoard(**item) for item in raw_data]
+        data = []
+        relays = []
+        for item in raw_data:
+            for relay in item["relays"]:
+                relay = json.loads(relay)
+                relays.append(RelayStatus(**relay))
+            relay_board = RelayBoard(relays=relays)
+            data.append(relay_board)
     else:
         data = [create_model_instance(response_model, item, unit) for item in raw_data]
 
