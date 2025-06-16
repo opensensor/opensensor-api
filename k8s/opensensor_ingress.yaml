@@ -69,7 +69,7 @@ spec:
           path: "/"
           backend:
             service:
-              name: opensensor-solar
+              name: opensensor-growmax
               port:
                 number: 80
   - host: solar-api.opensensor.io
