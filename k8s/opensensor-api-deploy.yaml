@@ -15,6 +15,10 @@ spec:
       labels:
         app: opensensor-api
     spec:
+      hostAliases:
+      - ip: "161.35.255.206"
+        hostnames:
+        - "members.opensensor.io"
       containers:
         - name: opensensor-api
           image: registry.digitalocean.com/whitewhale/opensensor
