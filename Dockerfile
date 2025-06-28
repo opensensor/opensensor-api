@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11-slim as builder
+FROM python:3.12-slim as builder
 
 ENV PIPENV_VENV_IN_PROJECT=1
 
@@ -26,7 +26,7 @@ RUN set -ex \
     && rm -rf /var/lib/apt/lists/*
 
 
-FROM python:3.11-slim as runtime
+FROM python:3.12-slim as runtime
 
 
 COPY --from=builder /usr/src/ /usr/src/
