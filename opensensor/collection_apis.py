@@ -1,8 +1,6 @@
-import hashlib
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from functools import wraps
 from typing import Generic, List, Optional, Type, TypeVar, get_args, get_origin
 
 from bson import Binary
@@ -12,6 +10,7 @@ from fastapi_pagination.default import Params as BaseParams
 from fief_client import FiefUserInfo
 from pydantic import BaseModel
 
+from opensensor.cache import redis_cache
 from opensensor.collections import (
     CO2,
     PH,
@@ -44,43 +43,10 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
-# Simple in-memory cache for development (replace with Redis in production)
-_cache = {}
-_cache_timestamps = {}
 
-
-def simple_cache(ttl_seconds=300):
-    """Simple in-memory cache decorator"""
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Create cache key from function name and arguments
-            cache_key = f"{func.__name__}:{hashlib.md5(str(args + tuple(kwargs.items())).encode()).hexdigest()}"
-
-            # Check if cached result exists and is still valid
-            if cache_key in _cache:
-                cached_time = _cache_timestamps.get(cache_key, 0)
-                if datetime.utcnow().timestamp() - cached_time < ttl_seconds:
-                    logger.debug(f"Cache hit for {cache_key}")
-                    return _cache[cache_key]
-
-            # Execute function and cache result
-            result = func(*args, **kwargs)
-            _cache[cache_key] = result
-            _cache_timestamps[cache_key] = datetime.utcnow().timestamp()
-            logger.debug(f"Cache miss for {cache_key}, result cached")
-
-            return result
-
-        return wrapper
-
-    return decorator
-
-
-@simple_cache(ttl_seconds=300)  # Cache for 5 minutes
+@redis_cache(ttl_seconds=300)  # Cache for 5 minutes
 def get_device_info_cached(device_id: str):
-    """Cached device information lookup"""
+    """Cached device information lookup using Redis"""
     api_keys, _ = get_api_keys_by_device_id(device_id)
     return reduce_api_keys_to_device_ids(api_keys, device_id)
 
