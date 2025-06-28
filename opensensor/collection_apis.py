@@ -7,7 +7,6 @@ from bson import Binary
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from fastapi_pagination.default import Page as BasePage
 from fastapi_pagination.default import Params as BaseParams
-from fief_client import FiefUserInfo
 from pydantic import BaseModel
 
 from opensensor.cache_strategy import (
@@ -33,10 +32,11 @@ from opensensor.collections import (
 )
 from opensensor.db import get_open_sensor_db
 from opensensor.users import (
+    AuthInfo,
     User,
-    auth,
-    device_id_is_allowed_for_user,
+    flexible_auth,
     migration_complete,
+    validate_device_access_flexible,
     validate_environment,
 )
 from opensensor.utils.units import convert_temperature
@@ -653,7 +653,7 @@ def sample_and_paginate_collection(
 
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
-        fief_user: Optional[FiefUserInfo] = Depends(auth.current_user(optional=True)),
+        auth_info: AuthInfo = Depends(flexible_auth),
         device_id: str = Path(
             title="The ID of the device chain for which to retrieve historical data."
         ),
@@ -664,11 +664,14 @@ def create_historical_data_route(entity: Type[T]):
         size: int = Query(50, ge=1, le=1000, description="Page size"),
         unit: str | None = Query(None, description="Unit"),
     ) -> Page[T]:
-        if not device_id_is_allowed_for_user(device_id, user=fief_user):
-            raise HTTPException(
-                status_code=403,
-                detail=f"User {fief_user} is not authorized to access device {device_id}",
-            )
+        # Use flexible authentication validation
+        if not validate_device_access_flexible(auth_info, device_id):
+            auth_type = auth_info.auth_type
+            if auth_type == "fief":
+                detail = f"User is not authorized to access device {device_id}"
+            else:
+                detail = f"API key is not authorized to access device {device_id}"
+            raise HTTPException(status_code=403, detail=detail)
 
         # TODO - Refactor this to support paid collections
         collection_name = "FreeTier"

@@ -169,6 +169,49 @@ class SensorDataCache:
         logger.info(f"Invalidated {deleted_count} cache entries for device {device_id}")
         return deleted_count
 
+    # Fief token caching (to reduce Fief server load)
+    def cache_fief_token_validation(self, token_hash: str, user_info: dict, ttl_minutes: int = 10):
+        """Cache Fief token validation results"""
+        if not self.redis_client:
+            return
+
+        cache_key = f"opensensor:fief_token:{token_hash}"
+        try:
+            self.redis_client.setex(cache_key, ttl_minutes * 60, json.dumps(user_info, default=str))
+            logger.debug(f"Cached Fief token validation: {token_hash[:8]}...")
+        except Exception as e:
+            logger.warning(f"Failed to cache Fief token validation: {e}")
+
+    def get_cached_fief_token_validation(self, token_hash: str) -> Optional[dict]:
+        """Get cached Fief token validation result"""
+        if not self.redis_client:
+            return None
+
+        cache_key = f"opensensor:fief_token:{token_hash}"
+        try:
+            cached_data = self.redis_client.get(cache_key)
+            if cached_data:
+                logger.debug(f"Cache hit for Fief token: {token_hash[:8]}...")
+                return json.loads(cached_data)
+        except Exception as e:
+            logger.warning(f"Failed to get cached Fief token validation: {e}")
+
+        return None
+
+    def invalidate_fief_token_cache(self, token_hash: str):
+        """Invalidate a specific Fief token cache entry"""
+        if not self.redis_client:
+            return False
+
+        cache_key = f"opensensor:fief_token:{token_hash}"
+        try:
+            result = self.redis_client.delete(cache_key)
+            logger.debug(f"Invalidated Fief token cache: {token_hash[:8]}...")
+            return result > 0
+        except Exception as e:
+            logger.warning(f"Failed to invalidate Fief token cache: {e}")
+            return False
+
 
 # Global cache instance
 sensor_cache = SensorDataCache()

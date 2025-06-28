@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import os
 import secrets
 from collections import defaultdict
@@ -7,7 +8,7 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 from bson import Binary
-from fastapi import HTTPException, Request, Response, status
+from fastapi import Depends, Header, HTTPException, Request, Response, status
 from fastapi.security import APIKeyCookie, OAuth2AuthorizationCodeBearer
 from fief_client import FiefAsync, FiefUserInfo
 from fief_client.integrations.fastapi import FiefAuth
@@ -407,6 +408,164 @@ def validate_api_key(api_key: str, device_id: str, device_name: str) -> User:
         raise HTTPException(status_code=403, detail="API key not found in the user's API keys")
 
     return user
+
+
+def get_user_by_api_key(api_key: str) -> Optional[tuple[User, APIKey]]:
+    """
+    Find a user and their API key info by the provided API key.
+    Returns tuple of (User, APIKey) if found, None otherwise.
+    """
+    if not api_key:
+        return None
+
+    db = get_open_sensor_db()
+    users_db = db["Users"]
+
+    # Find the user with the provided API key
+    user_doc = users_db.find_one({"api_keys.key": api_key})
+
+    if user_doc is None:
+        return None
+
+    user = User(**user_doc)
+
+    # Find the matching API key
+    matching_api_key = None
+    for api_key_obj in user.api_keys:
+        if api_key_obj.key == api_key:
+            matching_api_key = api_key_obj
+            break
+
+    if matching_api_key is None:
+        return None
+
+    return user, matching_api_key
+
+
+def validate_device_access_with_api_key(api_key_info: APIKey, requested_device_id: str) -> bool:
+    """
+    Check if the API key is authorized to access the requested device.
+    """
+    device_id, device_name = get_device_parts(requested_device_id)
+
+    # API key must match both device_id and device_name
+    return api_key_info.device_id == device_id and api_key_info.device_name == device_name
+
+
+def hash_token(token: str) -> str:
+    """Generate a hash for token caching"""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+async def cached_fief_user_validation(token: str) -> Optional[FiefUserInfo]:
+    """
+    Validate Fief token with caching to reduce server load
+    """
+    if not token:
+        return None
+
+    # Import here to avoid circular imports
+    from opensensor.cache_strategy import sensor_cache
+
+    token_hash = hash_token(token)
+
+    # Try to get from cache first
+    cached_user_info = sensor_cache.get_cached_fief_token_validation(token_hash)
+    if cached_user_info:
+        return cached_user_info
+
+    # Cache miss - validate with Fief server
+    try:
+        user_info = await fief.userinfo(token)
+        if user_info:
+            # Cache the successful validation
+            sensor_cache.cache_fief_token_validation(token_hash, user_info, ttl_minutes=10)
+            return user_info
+    except Exception as e:
+        logger.warning(f"Fief token validation failed: {e}")
+        # Invalidate cache entry if it exists
+        sensor_cache.invalidate_fief_token_cache(token_hash)
+
+    return None
+
+
+class CachedFiefAuth(FiefAuth):
+    """Fief authentication with caching to reduce server load"""
+
+    async def current_user(self, optional: bool = False):
+        """Override to use cached validation"""
+
+        async def _current_user(request: Request):
+            # Extract token from request
+            authorization = request.headers.get("Authorization")
+            if not authorization or not authorization.startswith("Bearer "):
+                if optional:
+                    return None
+                raise HTTPException(
+                    status_code=401, detail="Missing or invalid authorization header"
+                )
+
+            token = authorization.split(" ", 1)[1]
+            user_info = await cached_fief_user_validation(token)
+
+            if not user_info:
+                if optional:
+                    return None
+                raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+            return user_info
+
+        return _current_user
+
+
+# Create cached auth instance
+cached_auth = CachedFiefAuth(fief, oauth2_scheme)
+
+
+class AuthInfo(BaseModel):
+    """Authentication information for flexible auth"""
+
+    auth_type: str  # "fief" or "api_key"
+    user: Optional[User] = None
+    fief_user: Optional[FiefUserInfo] = None
+    api_key_info: Optional[APIKey] = None
+
+
+async def flexible_auth(
+    fief_user: Optional[FiefUserInfo] = Depends(cached_auth.current_user(optional=True)),
+    api_key: Optional[str] = Header(None, alias="X-API-Key"),
+) -> AuthInfo:
+    """
+    Flexible authentication that accepts either Fief tokens or device API keys.
+    Uses cached Fief validation to reduce server load.
+    """
+    if fief_user:
+        # Fief token authentication (now cached)
+        return AuthInfo(auth_type="fief", fief_user=fief_user)
+    elif api_key:
+        # API key authentication
+        user_and_key = get_user_by_api_key(api_key)
+        if user_and_key is None:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+
+        user, api_key_info = user_and_key
+        return AuthInfo(auth_type="api_key", user=user, api_key_info=api_key_info)
+    else:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+
+def validate_device_access_flexible(auth_info: AuthInfo, device_id: str) -> bool:
+    """
+    Validate device access for flexible authentication.
+    """
+    if auth_info.auth_type == "fief":
+        # Use existing Fief-based validation
+        return device_id_is_allowed_for_user(device_id, user=auth_info.fief_user)
+    elif auth_info.auth_type == "api_key":
+        # Use API key-based validation
+        return validate_device_access_with_api_key(auth_info.api_key_info, device_id)
+    else:
+        return False
 
 
 auth = oauth2_auth
