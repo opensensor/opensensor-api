@@ -10,7 +10,11 @@ from fastapi_pagination.default import Params as BaseParams
 from fief_client import FiefUserInfo
 from pydantic import BaseModel
 
-from opensensor.cache import redis_cache
+from opensensor.cache_strategy import (
+    cache_aware_aggregation,
+    cache_aware_device_lookup,
+    sensor_cache,
+)
 from opensensor.collections import (
     CO2,
     PH,
@@ -32,9 +36,7 @@ from opensensor.users import (
     User,
     auth,
     device_id_is_allowed_for_user,
-    get_api_keys_by_device_id,
     migration_complete,
-    reduce_api_keys_to_device_ids,
     validate_environment,
 )
 from opensensor.utils.units import convert_temperature
@@ -42,13 +44,6 @@ from opensensor.utils.units import convert_temperature
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
-
-
-@redis_cache(ttl_seconds=300)  # Cache for 5 minutes
-def get_device_info_cached(device_id: str):
-    """Cached device information lookup using Redis"""
-    api_keys, _ = get_api_keys_by_device_id(device_id)
-    return reduce_api_keys_to_device_ids(api_keys, device_id)
 
 
 old_collections = {
@@ -160,6 +155,10 @@ def _record_data_to_ts_collection(
 
     # Insert the document into the collection
     collection.insert_one(doc_to_insert)
+
+    # Invalidate cache for this device since new data was added
+    device_id = environment.device_metadata.device_id
+    sensor_cache.invalidate_device_cache(device_id)
 
 
 def get_collection_name(response_model: Type[T]):
@@ -575,7 +574,7 @@ def sample_and_paginate_collection(
     unit: str,
 ):
     # Use cached device lookup for better performance
-    device_ids, target_device_name = get_device_info_cached(device_id)
+    device_ids, target_device_name = cache_aware_device_lookup(device_id)
     offset = (page - 1) * size
 
     # Determine the right pipeline to use based on the response model
@@ -609,7 +608,7 @@ def sample_and_paginate_collection(
 
     db = get_open_sensor_db()
     collection = db[collection_name]
-    raw_data = list(collection.aggregate(pipeline))
+    raw_data = cache_aware_aggregation(collection, pipeline)
 
     # Add UTC offset to timestamp field
     for item in raw_data:
