@@ -207,10 +207,13 @@ def is_pydantic_model(obj):
 def get_nested_fields(model: Type[BaseModel]):
     nested_fields = {}
     for field_name, field in model.__fields__.items():
-        if is_pydantic_model(field.type_):
-            nested_fields[field_name] = field.type_
-        elif get_origin(field.type_) is List and is_pydantic_model(get_args(field.type_)[0]):
-            nested_fields[field_name] = get_args(field.type_)[0]
+        # Handle both Pydantic v1 and v2 field access
+        field_type = getattr(field, "type_", getattr(field, "annotation", None))
+
+        if is_pydantic_model(field_type):
+            nested_fields[field_name] = field_type
+        elif get_origin(field_type) is List and is_pydantic_model(get_args(field_type)[0]):
+            nested_fields[field_name] = get_args(field_type)[0]
     return nested_fields
 
 
@@ -241,7 +244,10 @@ def create_nested_pipeline(model: Type[BaseModel], prefix=""):
             match_conditions[full_mongo_field_name] = {"$exists": True}
 
         if field_name in nested_fields:
-            if get_origin(field_type.type_) is List:
+            # Handle both Pydantic v1 and v2 field access
+            field_annotation = getattr(field_type, "type_", getattr(field_type, "annotation", None))
+
+            if get_origin(field_annotation) is List:
                 nested_pipeline, nested_match = create_nested_pipeline(
                     nested_fields[field_name], ""  # Empty prefix for list items
                 )

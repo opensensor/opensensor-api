@@ -158,6 +158,7 @@ curl -X POST "http://localhost:8000/cache/invalidate" \
 - [x] Replace in-memory caching in collection_apis.py
 - [x] Add cache management endpoints
 - [x] Update main app to include collection router
+- [x] Fix Pydantic v2 compatibility issues
 - [x] Document migration process
 - [ ] Deploy to staging environment
 - [ ] Verify Redis connectivity
