@@ -298,13 +298,41 @@ def create_model_instance(model: Type[BaseModel], data: dict, target_unit: Optio
 
         # Handle temperature unit conversion if applicable
         if mongo_field in data:
-            data[field_name] = data[mongo_field]
+            # Convert string values back to appropriate types for numeric fields
+            value = data[mongo_field]
+            if field_name in ["temp", "rh", "pressure", "lux", "ppm", "pH", "vpd"] and isinstance(
+                value, str
+            ):
+                try:
+                    data[field_name] = float(value)
+                except (ValueError, TypeError):
+                    data[field_name] = value
+            else:
+                data[field_name] = value
         elif field_name in data:
             # If the field_name exists in data, use it
-            data[field_name] = data[field_name]
+            value = data[field_name]
+            if field_name in ["temp", "rh", "pressure", "lux", "ppm", "pH", "vpd"] and isinstance(
+                value, str
+            ):
+                try:
+                    data[field_name] = float(value)
+                except (ValueError, TypeError):
+                    data[field_name] = value
+            else:
+                data[field_name] = value
         elif field_name.lower() in data:
             # If the field_name (lowercase) exists in data, use it
-            data[field_name] = data[field_name.lower()]
+            value = data[field_name.lower()]
+            if field_name in ["temp", "rh", "pressure", "lux", "ppm", "pH", "vpd"] and isinstance(
+                value, str
+            ):
+                try:
+                    data[field_name] = float(value)
+                except (ValueError, TypeError):
+                    data[field_name] = value
+            else:
+                data[field_name] = value
         else:
             # If neither the mongo_field nor the field_name exists, log an error
             logger.error(
