@@ -489,37 +489,37 @@ async def cached_fief_user_validation(token: str) -> Optional[FiefUserInfo]:
     return None
 
 
-class CachedFiefAuth(FiefAuth):
-    """Fief authentication with caching to reduce server load"""
+async def cached_fief_current_user(
+    request: Request, optional: bool = False
+) -> Optional[FiefUserInfo]:
+    """
+    Cached Fief user validation dependency function
+    """
+    # Extract token from request
+    authorization = request.headers.get("Authorization")
+    if not authorization or not authorization.startswith("Bearer "):
+        if optional:
+            return None
+        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
 
-    async def current_user(self, optional: bool = False):
-        """Override to use cached validation"""
+    token = authorization.split(" ", 1)[1]
+    user_info = await cached_fief_user_validation(token)
 
-        async def _current_user(request: Request):
-            # Extract token from request
-            authorization = request.headers.get("Authorization")
-            if not authorization or not authorization.startswith("Bearer "):
-                if optional:
-                    return None
-                raise HTTPException(
-                    status_code=401, detail="Missing or invalid authorization header"
-                )
+    if not user_info:
+        if optional:
+            return None
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-            token = authorization.split(" ", 1)[1]
-            user_info = await cached_fief_user_validation(token)
-
-            if not user_info:
-                if optional:
-                    return None
-                raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-            return user_info
-
-        return _current_user
+    return user_info
 
 
-# Create cached auth instance
-cached_auth = CachedFiefAuth(fief, oauth2_scheme)
+def get_cached_fief_user_optional():
+    """Dependency factory for optional cached Fief user"""
+
+    async def _get_user(request: Request) -> Optional[FiefUserInfo]:
+        return await cached_fief_current_user(request, optional=True)
+
+    return _get_user
 
 
 class AuthInfo(BaseModel):
@@ -532,7 +532,7 @@ class AuthInfo(BaseModel):
 
 
 async def flexible_auth(
-    fief_user: Optional[FiefUserInfo] = Depends(cached_auth.current_user(optional=True)),
+    fief_user: Optional[FiefUserInfo] = Depends(get_cached_fief_user_optional()),
     api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> AuthInfo:
     """
