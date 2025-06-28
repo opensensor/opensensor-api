@@ -1,6 +1,8 @@
+import hashlib
 import json
 import logging
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 from typing import Generic, List, Optional, Type, TypeVar, get_args, get_origin
 
 from bson import Binary
@@ -40,6 +42,47 @@ from opensensor.utils.units import convert_temperature
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+# Simple in-memory cache for development (replace with Redis in production)
+_cache = {}
+_cache_timestamps = {}
+
+
+def simple_cache(ttl_seconds=300):
+    """Simple in-memory cache decorator"""
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Create cache key from function name and arguments
+            cache_key = f"{func.__name__}:{hashlib.md5(str(args + tuple(kwargs.items())).encode()).hexdigest()}"
+
+            # Check if cached result exists and is still valid
+            if cache_key in _cache:
+                cached_time = _cache_timestamps.get(cache_key, 0)
+                if datetime.utcnow().timestamp() - cached_time < ttl_seconds:
+                    logger.debug(f"Cache hit for {cache_key}")
+                    return _cache[cache_key]
+
+            # Execute function and cache result
+            result = func(*args, **kwargs)
+            _cache[cache_key] = result
+            _cache_timestamps[cache_key] = datetime.utcnow().timestamp()
+            logger.debug(f"Cache miss for {cache_key}, result cached")
+
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+@simple_cache(ttl_seconds=300)  # Cache for 5 minutes
+def get_device_info_cached(device_id: str):
+    """Cached device information lookup"""
+    api_keys, _ = get_api_keys_by_device_id(device_id)
+    return reduce_api_keys_to_device_ids(api_keys, device_id)
+
 
 old_collections = {
     "Temperature": "temp",
@@ -527,8 +570,8 @@ def sample_and_paginate_collection(
     size: int,
     unit: str,
 ):
-    api_keys, _ = get_api_keys_by_device_id(device_id)
-    device_ids, target_device_name = reduce_api_keys_to_device_ids(api_keys, device_id)
+    # Use cached device lookup for better performance
+    device_ids, target_device_name = get_device_info_cached(device_id)
     offset = (page - 1) * size
 
     # Determine the right pipeline to use based on the response model

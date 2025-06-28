@@ -1,0 +1,112 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/force-renewal: "1749951731"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"cert-manager.io/cluster-issuer":"letsencrypt-prod","kubernetes.io/ingress.class":"nginx","kubernetes.io/tls-acme":"true","nginx.ingress.kubernetes.io/backend-protocol":"HTTP","nginx.ingress.kubernetes.io/force-ssl-redirect":"true","nginx.ingress.kubernetes.io/proxy-body-size":"12m","nginx.ingress.kubernetes.io/ssl-passthrough":"false","nginx.ingress.kubernetes.io/ssl-redirect":"true","nginx.ingress.kubernetes.io/upstream-vhost":"$host","nginx.org/client-max-body-size":"12m"},"name":"opensensor-ingress","namespace":"whitewhale"},"spec":{"rules":[{"host":"opensensor.io","http":{"paths":[{"backend":{"service":{"name":"opensensor-growmax","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}},{"host":"www.opensensor.io","http":{"paths":[{"backend":{"service":{"name":"opensensor-growmax","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}},{"host":"api.opensensor.io","http":{"paths":[{"backend":{"service":{"name":"opensensor-api","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}},{"host":"growmax.opensensor.io","http":{"paths":[{"backend":{"service":{"name":"opensensor-growmax","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}},{"host":"solar.opensensor.io","http":{"paths":[{"backend":{"service":{"name":"opensensor-growmax","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}},{"host":"solar-api.opensensor.io","http":{"paths":[{"backend":{"service":{"name":"opensensor-solar-api","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}},{"host":"members.opensensor.io","http":{"paths":[{"backend":{"service":{"name":"opensensor-fief","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}}],"tls":[{"hosts":["opensensor.io","www.opensensor.io","api.opensensor.io","growmax.opensensor.io","solar.opensensor.io","solar-api.opensensor.io"],"secretName":"letsencrypt-prod"},{"hosts":["members.opensensor.io"],"secretName":"opensensor-fief-tls"}]}}
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 12m
+    nginx.ingress.kubernetes.io/ssl-passthrough: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: $host
+    nginx.org/client-max-body-size: 12m
+  creationTimestamp: "2022-07-24T04:14:25Z"
+  generation: 16
+  name: opensensor-ingress
+  namespace: whitewhale
+  resourceVersion: "454345868"
+  uid: d9465146-64b6-4c8b-ad1f-d9810872a7e6
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: www.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: api.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-api
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: growmax.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: solar.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: solar-api.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-solar-api
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: members.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-fief
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - opensensor.io
+    - www.opensensor.io
+    - api.opensensor.io
+    - growmax.opensensor.io
+    - solar.opensensor.io
+    - solar-api.opensensor.io
+    secretName: letsencrypt-prod
+  - hosts:
+    - members.opensensor.io
+    secretName: opensensor-fief-tls
+status:
+  loadBalancer:
+    ingress:
+    - ip: 161.35.255.206

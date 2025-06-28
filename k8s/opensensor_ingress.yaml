@@ -4,81 +4,110 @@ metadata:
   name: opensensor-ingress
   namespace: whitewhale
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/force-renewal: "1749951731"
     kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     kubernetes.io/tls-acme: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "12m"
-    nginx.org/client-max-body-size: "12m"
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 12m
+    nginx.ingress.kubernetes.io/ssl-passthrough: "false"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: $host
+    nginx.org/client-max-body-size: 12m
 spec:
+  ingressClassName: nginx
   tls:
-    - hosts:
-          - opensensor.io
-          - www.opensensor.io
-          - api.opensensor.io
-          - growmax.opensensor.io
-          - solar.opensensor.io
-          - solar-api.opensensor.io
-      secretName: letsencrypt-prod
+  - hosts:
+    - opensensor.io
+    - www.opensensor.io
+    - api.opensensor.io
+    - growmax.opensensor.io
+    - solar.opensensor.io
+    - solar-api.opensensor.io
+    - graph.opensensor.io
+    secretName: letsencrypt-prod
+  - hosts:
+    - members.opensensor.io
+    secretName: opensensor-fief-tls
   rules:
   - host: opensensor.io
     http:
       paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: opensensor-growmax
-              port:
-                number: 80
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
   - host: www.opensensor.io
     http:
       paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: opensensor-growmax
-              port:
-                number: 80
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
   - host: api.opensensor.io
     http:
       paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: opensensor-api
-              port:
-                number: 80
+      - backend:
+          service:
+            name: opensensor-api
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
   - host: growmax.opensensor.io
     http:
       paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: opensensor-growmax
-              port:
-                number: 80
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
   - host: solar.opensensor.io
     http:
       paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: opensensor-solar
-              port:
-                number: 80
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
   - host: solar-api.opensensor.io
     http:
       paths:
-        - pathType: Prefix
-          path: "/"
-          backend:
-            service:
-              name: opensensor-solar-api
-              port:
-                number: 80
+      - backend:
+          service:
+            name: opensensor-solar-api
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: graph.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-growmax
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  - host: members.opensensor.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: opensensor-fief
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
