@@ -77,6 +77,25 @@ class RelayBoard(TimestampModel):
         return "relays"
 
 
+class PumpStatus(BaseModel):
+    position: int
+    enabled: bool
+    speed: float | None = None
+    duration: float | None = None
+    timestamp: float | None = None
+    description: str | None = None
+
+
+class PumpBoard(TimestampModel):
+    """Pump activity tracking"""
+
+    pumps: List[PumpStatus]
+
+    @classmethod
+    def collection_name(cls):
+        return "pumps"
+
+
 class Moisture(TimestampModel):
     readings: List[float | Decimal | int] | str
 
@@ -99,6 +118,7 @@ class Environment(BaseModel):
     pH: PH | None = None
     liquid: LiquidLevel | None = None
     relays: RelayBoard | None = None
+    pumps: PumpBoard | None = None
 
 
 class VPD(BaseModel):

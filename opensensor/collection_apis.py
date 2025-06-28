@@ -23,6 +23,7 @@ from opensensor.collections import (
     Lux,
     Moisture,
     Pressure,
+    PumpBoard,
     RelayBoard,
     RelayStatus,
     Temperature,
@@ -118,6 +119,7 @@ environment_translation = {
     "pH": "pH",
     "liquid": "liquid",
     "relays": "relays",
+    "pumps": "pumps",
 }
 
 
@@ -184,6 +186,8 @@ def _record_data_to_ts_collection(
                     if key == "unit":
                         doc_to_insert[column_name + "_unit"] = value
                     elif key == "relays":
+                        doc_to_insert[column_name] = json.dumps(value)
+                    elif key == "pumps":
                         doc_to_insert[column_name] = json.dumps(value)
                     else:
                         doc_to_insert[column_name] = str(value)
@@ -740,6 +744,12 @@ router.add_api_route(
     "/relays/{device_id}",
     create_historical_data_route(RelayBoard),
     response_model=Page[RelayBoard],
+    methods=["GET"],
+)
+router.add_api_route(
+    "/pumps/{device_id}",
+    create_historical_data_route(PumpBoard),
+    response_model=Page[PumpBoard],
     methods=["GET"],
 )
 
