@@ -89,13 +89,18 @@ All historical data endpoints now support both authentication methods:
 
 ## Authentication Flow
 
-### Device API Key Flow
+### Public Device Flow (No Authentication Required)
+1. System checks if the requested device is marked as public (`private_data=False`)
+2. If public, data is returned immediately without authentication
+3. This preserves the original behavior for public devices
+
+### Private Device - API Key Flow
 1. User provides API key in `X-API-Key` header
 2. System validates API key exists in database
 3. System checks if API key is authorized for requested device
 4. If authorized, data is returned
 
-### Fief Token Flow (with caching)
+### Private Device - Fief Token Flow (with caching)
 1. User provides token in `Authorization: Bearer` header
 2. System checks Redis cache for token validation
 3. If cache miss, validates with Fief server and caches result

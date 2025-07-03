@@ -531,6 +531,50 @@ class AuthInfo(BaseModel):
     api_key_info: Optional[APIKey] = None
 
 
+def is_device_public(device_id: str) -> bool:
+    """
+    Check if a device is public (doesn't require authentication).
+    """
+    device_id_part, device_name = get_device_parts(device_id)
+    api_keys, owner = get_api_keys_by_device_id(device_id)
+
+    if len(api_keys) == 0:
+        # No API keys found - device doesn't exist or is not configured
+        return False
+
+    # Check if any API key for this device is marked as public (private_data=False)
+    for api_key in api_keys:
+        if api_key.device_id == device_id_part and api_key.device_name == device_name:
+            if not api_key.private_data:
+                return True
+
+    return False
+
+
+async def flexible_auth_optional(
+    fief_user: Optional[FiefUserInfo] = Depends(get_cached_fief_user_optional()),
+    api_key: Optional[str] = Header(None, alias="X-API-Key"),
+) -> Optional[AuthInfo]:
+    """
+    Optional flexible authentication that accepts either Fief tokens or device API keys.
+    Returns None if no authentication is provided (for public device access).
+    """
+    if fief_user:
+        # Fief token authentication (now cached)
+        return AuthInfo(auth_type="fief", fief_user=fief_user)
+    elif api_key:
+        # API key authentication
+        user_and_key = get_user_by_api_key(api_key)
+        if user_and_key is None:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+
+        user, api_key_info = user_and_key
+        return AuthInfo(auth_type="api_key", user=user, api_key_info=api_key_info)
+    else:
+        # No authentication provided - this is OK for public devices
+        return None
+
+
 async def flexible_auth(
     fief_user: Optional[FiefUserInfo] = Depends(get_cached_fief_user_optional()),
     api_key: Optional[str] = Header(None, alias="X-API-Key"),
@@ -554,10 +598,19 @@ async def flexible_auth(
         raise HTTPException(status_code=401, detail="Authentication required")
 
 
-def validate_device_access_flexible(auth_info: AuthInfo, device_id: str) -> bool:
+def validate_device_access_flexible(auth_info: Optional[AuthInfo], device_id: str) -> bool:
     """
     Validate device access for flexible authentication.
+    Handles public devices (no auth required) and private devices (auth required).
     """
+    # First check if the device is public
+    if is_device_public(device_id):
+        return True
+
+    # Device is private, authentication is required
+    if auth_info is None:
+        return False
+
     if auth_info.auth_type == "fief":
         # Use existing Fief-based validation
         return device_id_is_allowed_for_user(device_id, user=auth_info.fief_user)

@@ -34,7 +34,7 @@ from opensensor.db import get_open_sensor_db
 from opensensor.users import (
     AuthInfo,
     User,
-    flexible_auth,
+    flexible_auth_optional,
     migration_complete,
     validate_device_access_flexible,
     validate_environment,
@@ -653,7 +653,7 @@ def sample_and_paginate_collection(
 
 def create_historical_data_route(entity: Type[T]):
     async def historical_data_route(
-        auth_info: AuthInfo = Depends(flexible_auth),
+        auth_info: Optional[AuthInfo] = Depends(flexible_auth_optional),
         device_id: str = Path(
             title="The ID of the device chain for which to retrieve historical data."
         ),
@@ -664,10 +664,11 @@ def create_historical_data_route(entity: Type[T]):
         size: int = Query(50, ge=1, le=1000, description="Page size"),
         unit: str | None = Query(None, description="Unit"),
     ) -> Page[T]:
-        # Use flexible authentication validation
+        # Use flexible authentication validation (handles public devices)
         if not validate_device_access_flexible(auth_info, device_id):
-            auth_type = auth_info.auth_type
-            if auth_type == "fief":
+            if auth_info is None:
+                detail = f"Device {device_id} is private and requires authentication"
+            elif auth_info.auth_type == "fief":
                 detail = f"User is not authorized to access device {device_id}"
             else:
                 detail = f"API key is not authorized to access device {device_id}"
