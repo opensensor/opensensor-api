@@ -4,23 +4,20 @@ FROM python:3.13-slim as builder
 ENV PIPENV_VENV_IN_PROJECT=1
 
 # Copy your application source to the container
-# (make sure you create a .dockerignore file if any large files or directories should be excluded)
 WORKDIR /usr/src/
 ADD . /usr/src/
 
-# Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
-# Correct the path to your production requirements file, if needed.
-WORKDIR /usr/src/
+# Install build deps, then install pipenv & dependencies
 RUN set -ex \
     && BUILD_DEPS=" \
-    build-essential \
-    curl \
-     \
+        build-essential \
+        curl \
     " \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
     && python -m pip install --upgrade pip \
     && pip install pipenv \
     && pipenv sync --dev \
+    # Optionally run tests here:
     # && pipenv run pytest \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
@@ -28,6 +25,10 @@ RUN set -ex \
 
 FROM python:3.13-slim as runtime
 
+# ✅ Install CA certificates so TLS works with Let's Encrypt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/src/ /usr/src/
 WORKDIR /usr/src/
