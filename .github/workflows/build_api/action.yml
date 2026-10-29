@@ -22,6 +22,9 @@ inputs:
     default: '.'
 
 outputs:
+  image_digest:
+    description: Immutable registry digest of the published image
+    value: ${{ steps.published.outputs.image }}
   image_url:
     description: 'Url of the uploaded image with the SHA tag'
     value: ${{ steps.image_tags.outputs.sha }}
@@ -35,15 +38,15 @@ runs:
     - name: Generate Image Url
       id: image_url
       shell: bash
-      run: echo "::set-output name=value::registry.digitalocean.com/${{ inputs.image_path }}"
+      run: echo "value=registry.digitalocean.com/${{ inputs.image_path }}" >> "$GITHUB_OUTPUT"
 
     - name: Generate Tagged Urls
       id: image_tags
       shell: bash
       run: |
         SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-${{ inputs.sha_size }})
-        echo "::set-output name=sha::${{ steps.image_url.outputs.value }}:$SHORT_SHA"
-        echo "::set-output name=latest::${{ steps.image_url.outputs.value }}:latest"
+        echo "sha=${{ steps.image_url.outputs.value }}:$SHORT_SHA" >> "$GITHUB_OUTPUT"
+        echo "latest=${{ steps.image_url.outputs.value }}:latest" >> "$GITHUB_OUTPUT"
     - name: Build image
       shell: bash
       run: >
@@ -62,3 +65,14 @@ runs:
       shell: bash
       if: github.ref == 'refs/heads/main'
       run: docker push -a ${{ steps.image_url.outputs.value }}
+
+    - name: Resolve the published image digest
+      id: published
+      shell: bash
+      if: github.ref == 'refs/heads/main'
+      env:
+        IMAGE_TAG: ${{ steps.image_tags.outputs.sha }}
+      run: |
+        image=$(docker image inspect "$IMAGE_TAG" --format '{{index .RepoDigests 0}}')
+        [[ "$image" =~ ^registry\.digitalocean\.com/whitewhale/opensensor@sha256:[a-f0-9]{64}$ ]]
+        printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
