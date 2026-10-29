@@ -3,7 +3,6 @@ from fastapi_pagination import add_pagination
 from opensensor.app import app
 from opensensor.collection_apis import router as collection_apis_router
 from opensensor.devices import router as device_apis_router
-
 from opensensor.observability import init_sentry
 
 init_sentry()
