@@ -48,6 +48,7 @@ runs:
       shell: bash
       run: >
         docker build ${{ inputs.docker_build_context }}
+        --build-arg SENTRY_RELEASE="opensensor-api@${GITHUB_SHA}"
         -f ${{ inputs.dockerfile }}
         -t ${{ steps.image_tags.outputs.sha }}
         -t ${{ steps.image_tags.outputs.latest }}
