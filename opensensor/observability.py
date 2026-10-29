@@ -1,4 +1,5 @@
 """Opt-in Sentry error and trace capture; no request payloads or local variables."""
+
 import os
 from urllib.parse import urlsplit, urlunsplit
 
