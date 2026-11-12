@@ -15,6 +15,7 @@ spec:
       labels:
         app: opensensor-api
     spec:
+      automountServiceAccountToken: false
       hostAliases:
       - ip: "161.35.255.206"
         hostnames:
@@ -22,6 +23,14 @@ spec:
       containers:
         - name: opensensor-api
           image: registry.digitalocean.com/whitewhale/opensensor
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           envFrom:
             - secretRef:
                 name: opensensor-secrets

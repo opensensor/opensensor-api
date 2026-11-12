@@ -1,0 +1,31 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: opensensor-api-egress
+  namespace: whitewhale
+spec:
+  endpointSelector:
+    matchLabels:
+      app: opensensor-api
+  egress:
+    # MongoDB and the identity provider are outside the cluster.
+    - toEntities:
+        - world
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: logging
+            k8s:app: opensensor-apm-legacy-bridge
+      toPorts:
+        - ports:
+            - port: "8200"
+              protocol: TCP
