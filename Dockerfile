@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.13-slim as builder
+FROM python:3.15-slim as builder
 
 ENV PIPENV_VENV_IN_PROJECT=1
 
@@ -23,7 +23,7 @@ RUN set -ex \
     && rm -rf /var/lib/apt/lists/*
 
 
-FROM python:3.13-slim as runtime
+FROM python:3.15-slim as runtime
 
 # ✅ Install CA certificates so TLS works with Let's Encrypt
 RUN apt-get update \
